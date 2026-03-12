@@ -45,12 +45,3 @@ export interface ApiResponse<T = unknown> {
 
 // 連線狀態
 export type ConnectionStatus = "connected" | "disconnected" | "connecting";
-
-// 搜尋結果
-export interface SearchResult {
-  videoId: string;
-  title: string;
-  artist: string;
-  duration: number;
-  thumbnail?: string;
-}

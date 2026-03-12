@@ -1,4 +1,4 @@
-import type { ApiResponse, SearchResult } from "@/types";
+import type { ApiResponse, Track } from "@/types";
 
 const API_BASE = "/api";
 
@@ -34,10 +34,8 @@ class ApiService {
   }
 
   // 搜尋音樂
-  async search(query: string): Promise<ApiResponse<SearchResult[]>> {
-    return this.request<SearchResult[]>(
-      `/search?q=${encodeURIComponent(query)}`,
-    );
+  async search(query: string): Promise<ApiResponse<Track[]>> {
+    return this.request<Track[]>(`/search?q=${encodeURIComponent(query)}`);
   }
 
   // 加入到佇列

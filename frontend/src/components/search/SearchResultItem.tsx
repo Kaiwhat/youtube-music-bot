@@ -2,10 +2,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { formatTime } from "@/utils/format";
-import type { SearchResult } from "@/types";
+import type { Track } from "@/types";
 
 interface SearchResultItemProps {
-  result: SearchResult;
+  result: Track;
   onAdd: (videoId: string) => void;
   isAdding?: boolean;
 }
@@ -18,11 +18,7 @@ export const SearchResultItem = ({
   return (
     <Card className="p-4">
       <div className="flex items-center gap-4">
-        <Avatar
-          src={result.thumbnail}
-          alt={result.title}
-          size="lg"
-        />
+        <Avatar src={result.thumbnail} alt={result.title} size="lg" />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 dark:text-gray-50 truncate">
             {result.title}
