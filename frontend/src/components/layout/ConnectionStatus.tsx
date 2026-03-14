@@ -6,19 +6,22 @@ export const ConnectionStatus = () => {
 
   const statusConfig = {
     connected: {
-      variant: "success" as const,
       text: "已連線",
-      color: "bg-green-500",
+      badgeClassName:
+        "border border-[color:var(--dynamic-ring)] bg-[color:var(--accent-soft)] text-[var(--accent)] shadow-[0_10px_24px_-18px_var(--accent-glow)]",
+      dotClassName: "bg-[var(--accent)] shadow-[0_0_0_4px_var(--accent-soft)]",
     },
     connecting: {
-      variant: "warning" as const,
       text: "連線中...",
-      color: "bg-yellow-500",
+      badgeClassName:
+        "border border-[color:var(--surface-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]",
+      dotClassName: "bg-[var(--status-warning-text)] animate-pulse",
     },
     disconnected: {
-      variant: "error" as const,
       text: "未連線",
-      color: "bg-red-500",
+      badgeClassName:
+        "border border-[color:var(--surface-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]",
+      dotClassName: "bg-[var(--status-error-text)]",
     },
   };
 
@@ -27,15 +30,15 @@ export const ConnectionStatus = () => {
   return (
     <>
       {/* 桌面版：顯示完整狀態 */}
-      <div className="hidden lg:flex items-center gap-2">
-        <span className="text-sm text-gray-600 dark:text-gray-400">狀態:</span>
-        <Badge variant={config.variant}>{config.text}</Badge>
+      <div className="hidden lg:flex items-center gap-2 rounded-full border border-[color:var(--dynamic-ring)] bg-[var(--surface-subtle)] px-2.5 py-2 shadow-[0_14px_32px_-24px_var(--accent-glow)] transition-[border-color,background-color,box-shadow] duration-300">
+        <span className="text-sm text-[var(--text-secondary)]">狀態</span>
+        <Badge className={config.badgeClassName}>{config.text}</Badge>
       </div>
 
       {/* 手機版：僅顯示指示圓點 */}
       <div className="lg:hidden flex items-center" title={config.text}>
         <span
-          className={`h-2 w-2 rounded-full ${config.color} ${connectionStatus === "connecting" ? "animate-pulse" : ""}`}
+          className={`h-2.5 w-2.5 rounded-full transition-colors ${config.dotClassName}`}
         />
       </div>
     </>

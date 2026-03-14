@@ -23,12 +23,35 @@ export const useWebSocket = () => {
   const handleMessage = useCallback(
     (message: WSMessage) => {
       switch (message.type) {
-        case "playback_state":
+        case "playback_state": {
           if (message.state.currentTrack || message.state.queue.length > 0) {
             usePlayerStore.getState().setLoadingTrack(false);
           }
-          setPlaybackState(message.state);
+
+          const previousState = usePlayerStore.getState().playbackState;
+          const shouldPreserveCurrentTrack =
+            message.state.currentTrack === null &&
+            message.state.queue.length > 0 &&
+            previousState.currentTrack !== null;
+
+          setPlaybackState(
+            shouldPreserveCurrentTrack
+              ? {
+                  ...message.state,
+                  currentTrack: previousState.currentTrack,
+                  position:
+                    message.state.position > 0
+                      ? message.state.position
+                      : previousState.position,
+                  duration:
+                    message.state.duration > 0
+                      ? message.state.duration
+                      : previousState.duration,
+                }
+              : message.state,
+          );
           break;
+        }
 
         case "now_playing":
           // 開始播放 → 清除載入狀態

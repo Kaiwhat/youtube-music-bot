@@ -222,7 +222,36 @@ class QueueService {
       const removed = this.queue.splice(index, 1);
       log.info("Removed from queue", { videoId: removed[0]?.videoId });
       this.broadcastQueueChange();
+      this.broadcastState();
     }
+  }
+
+  /**
+   * 重新排序播放清單
+   */
+  reorderQueue(fromIndex: number, toIndex: number): void {
+    const isValidIndex = (index: number) =>
+      Number.isInteger(index) && index >= 0 && index < this.queue.length;
+
+    if (!isValidIndex(fromIndex) || !isValidIndex(toIndex)) {
+      throw new RangeError("Invalid queue index");
+    }
+
+    if (fromIndex === toIndex) {
+      return;
+    }
+
+    const [movedTrack] = this.queue.splice(fromIndex, 1);
+    this.queue.splice(toIndex, 0, movedTrack);
+
+    log.info("Reordered queue", {
+      videoId: movedTrack?.videoId,
+      fromIndex,
+      toIndex,
+    });
+
+    this.broadcastQueueChange();
+    this.broadcastState();
   }
 
   /**
@@ -315,13 +344,49 @@ class QueueService {
   }
 
   /**
+   * 開始/恢復播放
+   */
+  play(): void {
+    if (!this.currentTrack) {
+      log.debug("Ignoring play request without an active track");
+      return;
+    }
+
+    if (!this.isPaused && getPlayerService().isCurrentlyPlaying()) {
+      return;
+    }
+
+    this.isPaused = false;
+    getPlayerService().resume();
+    this.broadcastState();
+  }
+
+  /**
+   * 暫停播放
+   */
+  pause(): void {
+    if (!this.currentTrack) {
+      log.debug("Ignoring pause request without an active track");
+      return;
+    }
+
+    if (this.isPaused) {
+      return;
+    }
+
+    this.isPaused = true;
+    getPlayerService().pause();
+    this.broadcastState();
+  }
+
+  /**
    * 暫停/繼續播放
    */
   togglePlayPause(): void {
     if (this.isPaused) {
-      getPlayerService().resume();
+      this.play();
     } else {
-      getPlayerService().pause();
+      this.pause();
     }
   }
 
@@ -348,6 +413,11 @@ class QueueService {
     // 驗證輸入和邊界
     if (!Number.isFinite(position) || position < 0) {
       log.warn("Invalid seek position", { position });
+      return;
+    }
+
+    if (!this.currentTrack) {
+      log.warn("Cannot seek: no current track");
       return;
     }
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Avatar } from "@/components/ui/avatar";
+import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/playerStore";
 import { api } from "@/services/api";
@@ -61,7 +61,7 @@ export const MiniPlayer = () => {
         {currentTrack ? (
           <>
             {/* 專輯封面 */}
-            <Avatar
+            <AnimatedAvatar
               src={currentTrack.thumbnail}
               alt={currentTrack.title}
               size="sm"

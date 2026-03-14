@@ -1,16 +1,47 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import {
+  ThumbnailQuality,
+  type ThumbnailQuality as ThumbnailQualityType,
+  getOptimizedThumbnailCandidates,
+} from "@/utils/thumbnail";
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   src?: string;
   alt?: string;
   fallback?: React.ReactNode;
   size?: "sm" | "md" | "lg";
+  thumbnailQuality?: ThumbnailQualityType;
 }
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, src, alt, fallback, size = "md", ...props }, ref) => {
-    const [error, setError] = React.useState(false);
+  (
+    {
+      className,
+      src,
+      alt,
+      fallback,
+      size = "md",
+      thumbnailQuality = ThumbnailQuality.HIGH,
+      ...props
+    },
+    ref,
+  ) => {
+    const [failedCandidates, setFailedCandidates] = React.useState<string[]>([]);
+    const candidateSources = React.useMemo(
+      () =>
+        src ? getOptimizedThumbnailCandidates(src, thumbnailQuality) : [],
+      [src, thumbnailQuality],
+    );
+    const optimizedSrc = React.useMemo(
+      () =>
+        candidateSources.find((candidate) => !failedCandidates.includes(candidate)),
+      [candidateSources, failedCandidates],
+    );
+
+    React.useEffect(() => {
+      setFailedCandidates([]);
+    }, [candidateSources]);
 
     return (
       <div
@@ -24,12 +55,19 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         )}
         {...props}
       >
-        {src && !error ? (
+        {optimizedSrc ? (
           <img
-            src={src}
+            src={optimizedSrc}
             alt={alt || ""}
             className="h-full w-full object-cover"
-            onError={() => setError(true)}
+            decoding="async"
+            onError={() => {
+              setFailedCandidates((previous) =>
+                previous.includes(optimizedSrc)
+                  ? previous
+                  : [...previous, optimizedSrc],
+              );
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gray-200 dark:bg-gray-800">

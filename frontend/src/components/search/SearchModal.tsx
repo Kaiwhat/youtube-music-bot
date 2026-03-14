@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/toast";
 import { usePlayerStore } from "@/stores/playerStore";
 import { api } from "@/services/api";
 import type { Track } from "@/types";
+import { X } from "lucide-react";
 
 interface SearchModalProps {
   open: boolean;
@@ -106,10 +107,31 @@ export const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 flex flex-col">
-        <div className="p-6 pb-4 border-b border-gray-200">
-          <DialogTitle className="mb-4">搜尋音樂</DialogTitle>
-          <SearchInput onSearch={handleSearch} isLoading={isSearching} />
-          <DialogClose />
+        <div className="border-b border-[color:var(--surface-border)] p-6 pb-5">
+          <div className="mb-5 flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              <DialogTitle className="text-[2rem] font-semibold tracking-tight">
+                搜尋音樂
+              </DialogTitle>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                找到想播的歌，直接加入佇列或建立 Mix。
+              </p>
+            </div>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="shrink-0 rounded-full border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] p-4 text-[var(--text-secondary)] transition-all hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                aria-label="關閉搜尋"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </DialogClose>
+          </div>
+          <SearchInput
+            onSearch={handleSearch}
+            isLoading={isSearching}
+            className="flex items-center gap-4"
+          />
         </div>
 
         <ScrollArea className="flex-1 max-h-[60vh]">
@@ -140,8 +162,8 @@ export const SearchModal = ({ open, onOpenChange }: SearchModalProps) => {
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t border-gray-200 text-center text-sm text-gray-500">
-          <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">
+        <div className="border-t border-[color:var(--surface-border)] p-4 text-center text-sm text-[var(--text-secondary)]">
+          <kbd className="rounded-lg border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] px-2 py-1 text-xs font-semibold text-[var(--text-primary)]">
             Esc
           </kbd>{" "}
           關閉

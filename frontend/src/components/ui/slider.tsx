@@ -29,9 +29,9 @@ const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
           className,
         )}
       >
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+        <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-[color:var(--surface-border)]">
           <div
-            className="absolute h-full bg-gray-900 dark:bg-gray-700 transition-all"
+            className="absolute h-full rounded-full bg-[var(--accent)] transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -54,13 +54,15 @@ const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         />
         <div
           className={cn(
-            "absolute h-4 w-4 rounded-full border-2 border-gray-900 bg-white",
+            "absolute h-4 w-4 rounded-full border-[3px] border-[var(--surface-elevated)] bg-[var(--accent)] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.55)]",
             "transition-all",
             isDragging && "scale-110",
             disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-            "dark:border-gray-700 dark:bg-gray-950",
           )}
-          style={{ left: `calc(${percentage}% - 8px)` }}
+          style={{
+            left: `clamp(8px, ${percentage}%, calc(100% - 8px))`,
+            transform: "translateX(-50%)",
+          }}
         />
       </div>
     );

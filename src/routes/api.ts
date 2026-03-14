@@ -2,8 +2,86 @@ import { Hono } from "hono";
 import type { ApiResponse, Track } from "../types/index.ts";
 import { getMusicService } from "../services/music.service.ts";
 import { getQueueService } from "../services/queue.service.ts";
+import {
+  getArtworkProxyHeaders,
+  isAllowedArtworkUrl,
+  parseArtworkUrl,
+} from "../utils/artwork-proxy.ts";
 
 const api = new Hono();
+
+/**
+ * GET /api/artwork-proxy?url={imageUrl}
+ * 代理允許來源的封面圖片，供前端 palette fallback 使用
+ */
+api.get("/artwork-proxy", async (c) => {
+  const rawUrl = c.req.query("url");
+  const artworkUrl = parseArtworkUrl(rawUrl);
+
+  if (!artworkUrl) {
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: 'Query parameter "url" is required',
+      },
+      400,
+    );
+  }
+
+  if (!isAllowedArtworkUrl(artworkUrl)) {
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: "Artwork URL is not allowed",
+      },
+      400,
+    );
+  }
+
+  try {
+    const upstream = await fetch(artworkUrl, {
+      headers: {
+        Accept: "image/*",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      return c.json<ApiResponse>(
+        {
+          success: false,
+          error: "Failed to fetch artwork",
+        },
+        502,
+      );
+    }
+
+    const contentType = upstream.headers.get("Content-Type");
+    if (!contentType?.startsWith("image/")) {
+      return c.json<ApiResponse>(
+        {
+          success: false,
+          error: "Upstream response is not an image",
+        },
+        502,
+      );
+    }
+
+    return new Response(upstream.body, {
+      status: 200,
+      headers: getArtworkProxyHeaders(contentType),
+    });
+  } catch (error) {
+    console.error("Failed to proxy artwork:", error);
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: "Failed to fetch artwork",
+      },
+      502,
+    );
+  }
+});
 
 /**
  * GET /api/search?q={query}
@@ -128,6 +206,54 @@ api.get("/queue", (c) => {
 });
 
 /**
+ * POST /api/queue/reorder
+ * 重新排序播放清單
+ */
+api.post("/queue/reorder", async (c) => {
+  try {
+    const body = await c.req.json<{ fromIndex: number; toIndex: number }>();
+    const { fromIndex, toIndex } = body;
+
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) {
+      return c.json<ApiResponse>(
+        {
+          success: false,
+          error: "fromIndex and toIndex must be integers",
+        },
+        400,
+      );
+    }
+
+    const queueService = getQueueService();
+    queueService.reorderQueue(fromIndex, toIndex);
+
+    return c.json<ApiResponse>({
+      success: true,
+      data: { message: "Queue reordered" },
+    });
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return c.json<ApiResponse>(
+        {
+          success: false,
+          error: "Invalid queue index",
+        },
+        400,
+      );
+    }
+
+    console.error("Failed to reorder queue:", error);
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: "Failed to reorder queue",
+      },
+      500,
+    );
+  }
+});
+
+/**
  * DELETE /api/queue/:index
  * 從播放清單移除歌曲
  */
@@ -210,7 +336,7 @@ api.get("/lyrics", async (c) => {
 api.post("/play", (c) => {
   try {
     const queueService = getQueueService();
-    queueService.togglePlayPause();
+    queueService.play();
 
     return c.json<ApiResponse>({
       success: true,
@@ -235,7 +361,7 @@ api.post("/play", (c) => {
 api.post("/pause", (c) => {
   try {
     const queueService = getQueueService();
-    queueService.togglePlayPause();
+    queueService.pause();
 
     return c.json<ApiResponse>({
       success: true,

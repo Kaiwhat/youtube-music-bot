@@ -1,5 +1,5 @@
 import { ConnectionStatus } from "./ConnectionStatus";
-import { Button } from "@/components/ui/button";
+import { Github, Music2, Search } from "lucide-react";
 
 interface HeaderProps {
   onSearchClick?: () => void;
@@ -7,58 +7,49 @@ interface HeaderProps {
 
 export const Header = ({ onSearchClick }: HeaderProps) => {
   return (
-    <header className="border-b border-gray-200 bg-white px-4 py-3 lg:px-6 lg:py-4 dark:border-gray-800 dark:bg-gray-950">
-      <div className="flex items-center justify-between">
+    <header className="border-b border-[color:var(--surface-border)] bg-[color:var(--surface-subtle)]/90 px-4 py-3 backdrop-blur-xl lg:px-6 lg:py-4">
+      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
         {/* Logo - 手機版縮小 */}
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-50">
-          🎵 <span className="hidden sm:inline">YouTube Music Bot</span>
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-[color:var(--surface-border)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-sm lg:flex">
+            <Music2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] lg:text-[1.9rem]">
+              <span className="lg:hidden">🎵</span>{" "}
+              <span className="hidden sm:inline">YouTube Music Bot</span>
+            </h1>
+            <p className="hidden text-sm text-[var(--text-secondary)] lg:block">
+              Desktop jukebox with synced lyrics and live queue
+            </p>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-2 lg:gap-4">
+        <div className="flex items-center gap-2 lg:flex-1 lg:justify-end lg:gap-4">
           {/* 搜尋按鈕 - 手機版隱藏 */}
-          <Button
-            variant="outline"
-            size="md"
+          <button
+            type="button"
             onClick={onSearchClick}
-            className="gap-2 hidden lg:flex"
+            className="desktop-command-button hidden min-w-[260px] items-center justify-between rounded-2xl border px-4 py-3 text-left transition-transform duration-200 hover:-translate-y-0.5 lg:flex"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <span>搜尋音樂</span>
-            <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 dark:bg-gray-800 px-1.5 font-mono text-xs text-gray-600 dark:text-gray-300 dark:border-gray-700">
-              <span className="text-xs">⌘</span>K
+            <span className="flex items-center gap-3 text-[var(--text-primary)]">
+              <Search className="h-4 w-4 text-[var(--text-secondary)]" />
+              <span className="font-medium">搜尋音樂</span>
+            </span>
+            <kbd className="inline-flex h-7 select-none items-center gap-1 rounded-xl border border-[color:var(--surface-border)] bg-[var(--surface-muted)] px-2.5 font-mono text-xs text-[var(--text-secondary)]">
+              <span className="text-[0.65rem]">⌘</span>K
             </kbd>
-          </Button>
+          </button>
 
           {/* GitHub 連結 */}
           <a
             href="https://github.com/bs10081/youtube-music-bot"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center w-9 h-9 rounded-md text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
             aria-label="前往 GitHub 專案"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-            </svg>
+            <Github className="h-5 w-5" />
           </a>
 
           {/* 連線狀態 */}

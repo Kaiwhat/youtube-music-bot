@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { QueueList } from "./QueueList";
 import { Empty } from "@/components/ui/empty";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/toast";
 import { usePlayerStore } from "@/stores/playerStore";
 import { api } from "@/services/api";
@@ -10,10 +11,27 @@ interface QueueContentProps {
   className?: string;
 }
 
+type DropPosition = "before" | "after";
+
 export const QueueContent = ({ className }: QueueContentProps) => {
   const [removingIndex, setRemovingIndex] = useState<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    index: number;
+    position: DropPosition;
+  } | null>(null);
   const queue = usePlayerStore((state) => state.playbackState.queue);
+  const updatePlaybackState = usePlayerStore(
+    (state) => state.updatePlaybackState,
+  );
   const { showToast } = useToast();
+
+  const moveTrack = (tracks: typeof queue, fromIndex: number, toIndex: number) => {
+    const reordered = [...tracks];
+    const [movedTrack] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, movedTrack);
+    return reordered;
+  };
 
   const handleRemove = async (index: number) => {
     setRemovingIndex(index);
@@ -31,17 +49,57 @@ export const QueueContent = ({ className }: QueueContentProps) => {
     }
   };
 
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) {
+      setDraggingIndex(null);
+      setDropTarget(null);
+      return;
+    }
+
+    const previousQueue = [...queue];
+    const reorderedQueue = moveTrack(previousQueue, fromIndex, toIndex);
+
+    updatePlaybackState({ queue: reorderedQueue });
+    setDraggingIndex(null);
+    setDropTarget(null);
+
+    try {
+      const response = await api.reorderQueue(fromIndex, toIndex);
+      if (!response.success) {
+        updatePlaybackState({ queue: previousQueue });
+        showToast({ message: response.error || "重新排序失敗", type: "error" });
+      }
+    } catch (error) {
+      updatePlaybackState({ queue: previousQueue });
+      showToast({ message: "重新排序發生錯誤", type: "error" });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggingIndex(null);
+    setDropTarget(null);
+  };
+
   if (queue.length === 0) {
     return <Empty title="播放佇列為空" description="搜尋並加入歌曲到佇列" />;
   }
 
   return (
-    <div className={cn("overflow-auto", className)}>
+    <ScrollArea
+      className={cn("desktop-scrollbar h-full min-h-0 w-full", className)}
+      maxHeight="100%"
+    >
       <QueueList
         queue={queue}
         onRemove={handleRemove}
+        onReorder={handleReorder}
         removingIndex={removingIndex}
+        draggingIndex={draggingIndex}
+        dropTarget={dropTarget}
+        onDragStart={setDraggingIndex}
+        onDragOver={setDropTarget}
+        onDragEnd={handleDragEnd}
       />
-    </div>
+    </ScrollArea>
   );
 };

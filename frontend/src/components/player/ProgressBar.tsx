@@ -26,23 +26,23 @@ export const ProgressBar = () => {
   // 載入中時顯示載入動畫
   if (isLoadingTrack) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-center gap-2 h-5">
+      <div className="space-y-3">
+        <div className="flex h-5 items-center justify-center gap-2">
           <Spinner size="sm" />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-[var(--text-secondary)]">
             {loadingMessage || "正在載入..."}
           </span>
         </div>
         {/* 顯示載入進度條動畫 */}
-        <div className="h-1 bg-muted rounded overflow-hidden">
-          <div className="h-full bg-primary/50 animate-pulse w-full" />
+        <div className="overflow-hidden rounded-full bg-[var(--surface-border)]">
+          <div className="h-2.5 w-full animate-pulse rounded-full bg-[var(--accent)]/60" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <Slider
         value={[position]}
         max={duration || 100}

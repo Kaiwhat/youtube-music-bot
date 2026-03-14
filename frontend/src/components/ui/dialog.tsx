@@ -76,7 +76,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
           className={cn(
             "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
             "w-full max-w-lg max-h-[85vh] overflow-hidden",
-            "bg-white dark:bg-gray-900 rounded-lg shadow-lg",
+            "surface-card rounded-[28px]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -106,7 +106,7 @@ const DialogTitle = React.forwardRef<HTMLHeadingElement, DialogTitleProps>(
       <BaseDialog.Title
         ref={ref}
         className={cn(
-          "text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-50",
+          "text-lg font-semibold leading-none tracking-tight text-[var(--text-primary)]",
           className,
         )}
       >
@@ -131,7 +131,7 @@ const DialogDescription = React.forwardRef<
   return (
     <BaseDialog.Description
       ref={ref}
-      className={cn("text-sm text-gray-500 dark:text-gray-300", className)}
+      className={cn("text-sm text-[var(--text-secondary)]", className)}
     >
       {children}
     </BaseDialog.Description>
@@ -155,7 +155,7 @@ const DialogClose = React.forwardRef<HTMLButtonElement, DialogCloseProps>(
         {...({ asChild } as any)}
         className={cn(
           !asChild &&
-            "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:pointer-events-none dark:ring-offset-gray-950 dark:focus:ring-gray-300",
+            "absolute right-4 top-4 rounded-full border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] p-2 text-[var(--text-secondary)] opacity-90 transition-all hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] disabled:pointer-events-none",
           className,
         )}
       >

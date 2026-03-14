@@ -1,10 +1,26 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { getQueueService } from "../services/queue.service.ts";
+import {
+  __resetQueueServiceForTests,
+  getQueueService,
+} from "../services/queue.service.ts";
+import {
+  __resetPlayerServiceForTests,
+} from "../services/player.service.ts";
+import type { Track } from "../types/index.ts";
+
+const track = (videoId: string, title: string): Track => ({
+  videoId,
+  title,
+  artist: "Test Artist",
+  duration: 180,
+});
 
 describe("QueueService - seekTo functionality", () => {
   let queueService: ReturnType<typeof getQueueService>;
 
   beforeEach(() => {
+    __resetQueueServiceForTests();
+    __resetPlayerServiceForTests();
     queueService = getQueueService();
   });
 
@@ -76,6 +92,60 @@ describe("QueueService - seekTo functionality", () => {
     });
   });
 
+  describe("playback controls", () => {
+    test("should pause the current track", () => {
+      const internalQueueService = queueService as unknown as {
+        currentTrack: Track | null;
+        isPaused: boolean;
+      };
+
+      internalQueueService.currentTrack = track("track-1", "Track 1");
+      internalQueueService.isPaused = false;
+
+      queueService.pause();
+
+      expect(queueService.getState().isPlaying).toBe(false);
+    });
+
+    test("should resume a paused track", () => {
+      const internalQueueService = queueService as unknown as {
+        currentTrack: Track | null;
+        isPaused: boolean;
+      };
+
+      internalQueueService.currentTrack = track("track-1", "Track 1");
+      internalQueueService.isPaused = true;
+
+      queueService.play();
+
+      expect(queueService.getState().isPlaying).toBe(true);
+    });
+
+    test("should ignore play requests without a current track", () => {
+      queueService.play();
+
+      expect(queueService.getState().currentTrack).toBeNull();
+      expect(queueService.getState().isPlaying).toBe(false);
+    });
+
+    test("should keep play and pause idempotent", () => {
+      const internalQueueService = queueService as unknown as {
+        currentTrack: Track | null;
+        isPaused: boolean;
+      };
+
+      internalQueueService.currentTrack = track("track-1", "Track 1");
+      internalQueueService.isPaused = false;
+
+      queueService.play();
+      expect(queueService.getState().isPlaying).toBe(true);
+
+      queueService.pause();
+      queueService.pause();
+      expect(queueService.getState().isPlaying).toBe(false);
+    });
+  });
+
   describe("queue management", () => {
     test("should return empty queue initially", () => {
       const queue = queueService.getQueue();
@@ -91,6 +161,38 @@ describe("QueueService - seekTo functionality", () => {
       expect(state).toHaveProperty("duration");
       expect(state).toHaveProperty("volume");
       expect(state).toHaveProperty("queue");
+    });
+
+    test("should reorder queue items", () => {
+      const internalQueueService = queueService as unknown as {
+        queue: Track[];
+      };
+
+      internalQueueService.queue = [
+        track("track-1", "Track 1"),
+        track("track-2", "Track 2"),
+        track("track-3", "Track 3"),
+      ];
+
+      queueService.reorderQueue(2, 0);
+
+      expect(queueService.getQueue().map((item) => item.videoId)).toEqual([
+        "track-3",
+        "track-1",
+        "track-2",
+      ]);
+    });
+
+    test("should reject invalid reorder indexes", () => {
+      const internalQueueService = queueService as unknown as {
+        queue: Track[];
+      };
+
+      internalQueueService.queue = [track("track-1", "Track 1")];
+
+      expect(() => queueService.reorderQueue(0, 3)).toThrow(
+        "Invalid queue index",
+      );
     });
   });
 });

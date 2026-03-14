@@ -11,17 +11,17 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       <div
         ref={ref}
         className={cn(
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors",
+          "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors",
           variant === "default" &&
-            "bg-gray-900 text-white dark:bg-gray-700 dark:text-gray-50",
+            "bg-[var(--accent-soft)] text-[var(--text-primary)]",
           variant === "success" &&
-            "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
+            "bg-[var(--status-success-bg)] text-[var(--status-success-text)]",
           variant === "warning" &&
-            "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
+            "bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]",
           variant === "error" &&
-            "bg-gray-900 text-white dark:bg-gray-700 dark:text-gray-50",
+            "bg-[var(--status-error-bg)] text-[var(--status-error-text)]",
           variant === "secondary" &&
-            "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
+            "bg-[var(--surface-muted)] text-[var(--text-secondary)]",
           className,
         )}
         {...props}

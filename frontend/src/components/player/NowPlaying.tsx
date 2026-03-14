@@ -1,38 +1,137 @@
+import { AnimatedAvatar } from "@/components/ui/animated-avatar";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/playerStore";
+import { Search, Sparkles } from "lucide-react";
 
-export const NowPlaying = () => {
-  const currentTrack = usePlayerStore(
-    (state) => state.playbackState.currentTrack
-  );
+interface NowPlayingProps {
+  onSearchClick?: () => void;
+  showIdleState?: boolean;
+  compact?: boolean;
+}
+
+export const NowPlaying = ({
+  onSearchClick,
+  showIdleState = true,
+  compact = false,
+}: NowPlayingProps) => {
+  const currentTrack = usePlayerStore((state) => state.playbackState.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.playbackState.isPlaying);
 
   if (!currentTrack) {
-    return (
-      <div className="flex items-center gap-4">
-        <Avatar size="lg" />
-        <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            沒有正在播放的歌曲
-          </p>
+    if (!showIdleState) {
+      return (
+        <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
+          <Avatar
+            size="lg"
+            className="h-44 w-44 rounded-[28px] border border-[color:var(--dynamic-ring)] bg-[color:color-mix(in_srgb,var(--surface-elevated)_84%,var(--accent-soft)_16%)]"
+            fallback={<Sparkles className="h-14 w-14 text-[var(--text-muted)]" />}
+          />
+          <div className="space-y-3">
+            <span className="inline-flex rounded-full border border-[color:var(--dynamic-ring)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+              Preparing
+            </span>
+            <div>
+              <p className="text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+                正在準備播放
+              </p>
+              <p className="mt-2 text-base text-[var(--text-secondary)]">
+                播放器正在接手你的歌曲，封面與歌詞會在開始後出現在這裡。
+              </p>
+            </div>
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto flex w-full max-w-[720px] flex-col items-center justify-center gap-7 text-center lg:gap-8">
+        <div className="relative">
+          <div className="absolute inset-4 rounded-[28px] bg-[var(--accent-soft)] blur-3xl opacity-80" />
+          <Avatar
+            size="lg"
+            className="relative h-40 w-40 rounded-[28px] border border-[color:var(--dynamic-ring)] bg-[color:color-mix(in_srgb,var(--surface-elevated)_84%,var(--accent-soft)_16%)] shadow-[0_22px_48px_-28px_rgba(15,23,42,0.28)] lg:h-48 lg:w-48"
+            fallback={
+              <Sparkles className="h-14 w-14 text-[var(--text-muted)] lg:h-16 lg:w-16" />
+            }
+          />
+        </div>
+        <div className="flex max-w-[640px] flex-col items-center gap-4">
+          <span className="inline-flex rounded-full border border-[color:var(--dynamic-ring)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Ready to play
+          </span>
+          <div className="space-y-3">
+            <p className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] lg:text-[3.4rem]">
+              開始播放你的第一首歌
+            </p>
+            <p className="mx-auto max-w-[34rem] text-base leading-8 text-[var(--text-secondary)] lg:text-lg">
+              搜尋並加入歌曲後，動態背景、封面轉場、歌詞與播放佇列都會跟著音樂一起展開。
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            type="button"
+            size="lg"
+            onClick={onSearchClick}
+            className="h-12 rounded-2xl px-5 shadow-[0_20px_34px_-18px_var(--accent-glow)]"
+          >
+            <Search className="h-4 w-4" />
+            搜尋音樂
+          </Button>
+          <div className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] px-4 text-sm font-medium text-[var(--text-secondary)]">
+            <kbd className="inline-flex h-7 min-w-7 items-center justify-center rounded-xl border border-[color:var(--surface-border)] bg-[var(--surface-muted)] px-2 font-mono text-xs">
+              <span className="text-[0.65rem]">⌘</span>K
+            </kbd>
+            快速搜尋
+          </div>
+        </div>
+        <p className="max-w-[32rem] text-sm leading-7 text-[var(--text-muted)]">
+          加入第一首後，你就可以建立 Mix、查看即時歌詞，或把更多歌曲排進播放佇列。
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <Avatar
-        src={currentTrack.thumbnail}
-        alt={currentTrack.title}
-        size="lg"
-      />
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-50 truncate">
-          {currentTrack.title}
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-          {currentTrack.artist}
-        </p>
+    <div
+      className={
+        compact
+          ? "grid items-center gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8"
+          : "flex flex-col gap-7 lg:gap-8"
+      }
+    >
+      <div className="flex justify-center lg:justify-start">
+        <AnimatedAvatar
+          src={currentTrack.thumbnail}
+          alt={currentTrack.title}
+          size="lg"
+          thumbnailQuality="maxresdefault"
+          className={
+            compact
+              ? "h-48 w-48 rounded-[30px] border border-[color:var(--dynamic-ring)] shadow-[0_26px_54px_-28px_rgba(15,23,42,0.85)] lg:h-56 lg:w-56"
+              : "h-52 w-52 rounded-[32px] border border-[color:var(--dynamic-ring)] shadow-[0_26px_54px_-28px_rgba(15,23,42,0.85)] lg:h-64 lg:w-64"
+          }
+        />
+      </div>
+      <div className="space-y-4 text-center lg:text-left">
+        <span className="inline-flex rounded-full border border-[color:var(--dynamic-ring)] bg-[color:var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-primary)]">
+          {isPlaying ? "Now Playing" : "Paused"}
+        </span>
+        <div className="space-y-2">
+          <h2
+            className={
+              compact
+                ? "line-clamp-3 text-3xl font-semibold tracking-tight text-[var(--text-primary)] lg:text-[2.9rem]"
+                : "line-clamp-2 text-3xl font-semibold tracking-tight text-[var(--text-primary)] lg:text-[2.6rem]"
+            }
+          >
+            {currentTrack.title}
+          </h2>
+          <p className={compact ? "text-xl text-[var(--text-secondary)]" : "text-lg text-[var(--text-secondary)] lg:text-xl"}>
+            {currentTrack.artist}
+          </p>
+        </div>
       </div>
     </div>
   );

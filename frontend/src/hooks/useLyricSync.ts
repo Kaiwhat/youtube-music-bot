@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { usePlayerStore } from "@/stores/playerStore";
 
 /**
@@ -8,12 +8,10 @@ import { usePlayerStore } from "@/stores/playerStore";
 export const useLyricSync = () => {
   const lyrics = usePlayerStore((state) => state.lyrics);
   const position = usePlayerStore((state) => state.playbackState.position);
-  const [currentIndex, setCurrentIndex] = useState(-1);
 
-  useEffect(() => {
+  const currentIndex = useMemo(() => {
     if (lyrics.length === 0) {
-      setCurrentIndex(-1);
-      return;
+      return -1;
     }
 
     // 找到當前應該高亮的歌詞行
@@ -26,7 +24,7 @@ export const useLyricSync = () => {
       }
     }
 
-    setCurrentIndex(newIndex);
+    return newIndex;
   }, [lyrics, position]);
 
   return { currentIndex };

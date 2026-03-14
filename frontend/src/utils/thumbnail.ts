@@ -17,6 +17,33 @@ export const ThumbnailQuality = {
 export type ThumbnailQuality =
   (typeof ThumbnailQuality)[keyof typeof ThumbnailQuality];
 
+const THUMBNAIL_QUALITY_FALLBACKS: Record<ThumbnailQuality, ThumbnailQuality[]> =
+  {
+    [ThumbnailQuality.MAXRES]: [
+      ThumbnailQuality.MAXRES,
+      ThumbnailQuality.STANDARD,
+      ThumbnailQuality.HIGH,
+      ThumbnailQuality.MEDIUM,
+      ThumbnailQuality.DEFAULT,
+    ],
+    [ThumbnailQuality.STANDARD]: [
+      ThumbnailQuality.STANDARD,
+      ThumbnailQuality.HIGH,
+      ThumbnailQuality.MEDIUM,
+      ThumbnailQuality.DEFAULT,
+    ],
+    [ThumbnailQuality.HIGH]: [
+      ThumbnailQuality.HIGH,
+      ThumbnailQuality.MEDIUM,
+      ThumbnailQuality.DEFAULT,
+    ],
+    [ThumbnailQuality.MEDIUM]: [
+      ThumbnailQuality.MEDIUM,
+      ThumbnailQuality.DEFAULT,
+    ],
+    [ThumbnailQuality.DEFAULT]: [ThumbnailQuality.DEFAULT],
+  };
+
 /**
  * 將 YouTube 縮略圖 URL 轉換為指定解析度
  *
@@ -49,4 +76,55 @@ export function getHighQualityThumbnail(
 
   const videoId = match[1];
   return `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`;
+}
+
+/**
+ * 針對 YouTube / YouTube Music 的縮圖 URL 做較高解析度轉換。
+ * 支援標準 i.ytimg 與 lh3.googleusercontent 的 size suffix。
+ */
+export function getOptimizedThumbnail(
+  url: string,
+  quality: ThumbnailQuality = ThumbnailQuality.HIGH,
+): string {
+  if (!url) return url;
+
+  const youtubeThumbnail = getHighQualityThumbnail(url, quality);
+  if (youtubeThumbnail !== url) {
+    return youtubeThumbnail;
+  }
+
+  if (url.includes("googleusercontent.com")) {
+    const suffixPattern = /=w\d+-h\d+(-[a-z0-9-]+)?$/i;
+
+    if (suffixPattern.test(url)) {
+      if (quality === ThumbnailQuality.MAXRES) {
+        return url.replace(suffixPattern, "=s720-c-k-c0x00ffffff-no-rj");
+      }
+
+      if (quality === ThumbnailQuality.STANDARD) {
+        return url.replace(suffixPattern, "=s512-c-k-c0x00ffffff-no-rj");
+      }
+
+      return url.replace(suffixPattern, "=s360-c-k-c0x00ffffff-no-rj");
+    }
+  }
+
+  return url;
+}
+
+export function getOptimizedThumbnailCandidates(
+  url: string,
+  preferredQuality: ThumbnailQuality = ThumbnailQuality.HIGH,
+): string[] {
+  if (!url) {
+    return [];
+  }
+
+  const candidates = THUMBNAIL_QUALITY_FALLBACKS[preferredQuality].map(
+    (quality) => getOptimizedThumbnail(url, quality),
+  );
+
+  candidates.push(url);
+
+  return Array.from(new Set(candidates.filter(Boolean)));
 }

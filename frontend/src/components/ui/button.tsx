@@ -13,8 +13,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           // 基礎樣式
-          "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0",
           "disabled:pointer-events-none disabled:opacity-50",
           // 尺寸
           size === "sm" && "h-8 px-3 text-sm",
@@ -22,13 +22,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           size === "lg" && "h-11 px-6 text-base",
           // 變體
           variant === "default" &&
-            "bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-700 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200 dark:active:bg-gray-300",
+            "bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110 active:translate-y-px",
           variant === "ghost" &&
-            "hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-50",
+            "text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]",
           variant === "outline" &&
-            "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700/50 dark:text-gray-50 dark:hover:bg-gray-800",
+            "border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)]",
           variant === "destructive" &&
-            "bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-700",
+            "bg-[#c24141] text-white hover:brightness-110 active:translate-y-px dark:bg-[#ef6767] dark:text-[#160a0a]",
           className,
         )}
         {...props}

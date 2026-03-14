@@ -1,36 +1,61 @@
 import { Slider } from "@/components/ui/slider";
 import { usePlayerStore } from "@/stores/playerStore";
 import { api } from "@/services/api";
-import { throttle } from "@/utils/format";
-import { useMemo } from "react";
+import { debounce, throttle } from "@/utils/format";
+import { useEffect, useMemo, useState } from "react";
+import { Volume2 } from "lucide-react";
 
 export const VolumeControl = () => {
   const volume = usePlayerStore((state) => state.playbackState.volume);
+  const [displayVolume, setDisplayVolume] = useState(volume);
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
   // 節流音量調整請求
   const handleVolumeChange = useMemo(
     () =>
-      throttle((value: number[]) => {
-        api.setVolume(value[0]);
+      throttle((nextVolume: number) => {
+        void api.setVolume(nextVolume);
       }, 300),
-    []
+    [],
   );
 
+  const commitVolumeChange = useMemo(
+    () =>
+      debounce((nextVolume: number) => {
+        void api.setVolume(nextVolume);
+        setIsAdjusting(false);
+      }, 120),
+    [],
+  );
+
+  useEffect(() => {
+    if (!isAdjusting) {
+      setDisplayVolume(volume);
+    }
+  }, [isAdjusting, volume]);
+
+  const onSliderChange = (value: number[]) => {
+    const nextVolume = value[0] ?? 0;
+
+    setIsAdjusting(true);
+    setDisplayVolume(nextVolume);
+    handleVolumeChange(nextVolume);
+    commitVolumeChange(nextVolume);
+  };
+
   return (
-    <div className="flex items-center gap-2 w-32">
-      <svg
-        className="h-5 w-5 text-gray-600 dark:text-gray-400"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
-      </svg>
+    <div className="flex w-full min-w-[280px] max-w-[360px] items-center gap-4 rounded-full border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] px-5 py-3">
+      <Volume2 className="h-5 w-5 shrink-0 text-[var(--text-secondary)]" />
       <Slider
-        value={[volume]}
+        className="flex-1"
+        value={[displayVolume]}
         max={100}
         step={1}
-        onValueChange={handleVolumeChange}
+        onValueChange={onSliderChange}
       />
+      <span className="w-10 text-right text-sm font-semibold text-[var(--text-secondary)]">
+        {displayVolume}
+      </span>
     </div>
   );
 };

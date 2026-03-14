@@ -34,11 +34,11 @@ export function handleWebSocketMessage(
 
     switch (data.type) {
       case "play":
-        queueService.togglePlayPause();
+        queueService.play();
         break;
 
       case "pause":
-        queueService.togglePlayPause();
+        queueService.pause();
         break;
 
       case "skip":

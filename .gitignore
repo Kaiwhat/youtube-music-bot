@@ -25,3 +25,9 @@ Thumbs.db
 # Temporary files
 /tmp/
 *.tmp
+
+# Local exploration and deployment artifacts
+.cache/
+.codex/
+youtube-music-bot-arm64.tar
+youtube-music-cli-explore/

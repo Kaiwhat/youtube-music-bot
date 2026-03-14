@@ -90,6 +90,17 @@ class ApiService {
     return this.request<void>(`/queue/${index}`, { method: "DELETE" });
   }
 
+  // 重新排序佇列
+  async reorderQueue(
+    fromIndex: number,
+    toIndex: number,
+  ): Promise<ApiResponse<void>> {
+    return this.request<void>("/queue/reorder", {
+      method: "POST",
+      body: JSON.stringify({ fromIndex, toIndex }),
+    });
+  }
+
   // 取得當前狀態
   async getState(): Promise<ApiResponse<any>> {
     return this.request<any>("/state");

@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useArtworkTheme } from "@/hooks/useArtworkTheme";
 import { usePlayerStore } from "@/stores/playerStore";
+import { cn } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SearchModal } from "@/components/search/SearchModal";
 import { PlayerSection } from "@/components/player/PlayerSection";
@@ -22,7 +24,12 @@ import {
 
 function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [desktopActiveTab, setDesktopActiveTab] = useState("lyrics");
   const mobileActiveTab = usePlayerStore((state) => state.mobileActiveTab);
+  const currentTrack = usePlayerStore((state) => state.playbackState.currentTrack);
+  const queue = usePlayerStore((state) => state.playbackState.queue);
+  const artworkTheme = useArtworkTheme();
+  const isDesktopIdle = !currentTrack && queue.length === 0;
 
   // 初始化 WebSocket 連接
   useWebSocket();
@@ -40,40 +47,58 @@ function App() {
 
   return (
     <ToastProvider>
-      <MainLayout onSearchClick={handleSearchOpen}>
+      <MainLayout onSearchClick={handleSearchOpen} artworkTheme={artworkTheme}>
         {/* 桌面版：雙欄佈局 */}
-        <div className="hidden lg:grid lg:grid-cols-2 gap-6 h-full">
-          {/* 左側：播放器 */}
-          <div className="flex flex-col gap-6">
-            <PlayerSection />
-          </div>
-
-          {/* 右側：標籤切換（歌詞/播放佇列） */}
-          <div className="flex flex-col gap-6 h-full">
-            <div className="flex-1 min-h-0">
-              <Tabs defaultValue="lyrics" className="h-full flex flex-col">
-                <div className="pb-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="lyrics">歌詞</TabsTrigger>
-                    <TabsTrigger value="queue">播放佇列</TabsTrigger>
-                    <TabsIndicator />
-                  </TabsList>
-                </div>
-                <TabsContent
-                  value="lyrics"
-                  className="flex-1 overflow-hidden mt-0"
-                >
-                  <LyricsDisplay />
-                </TabsContent>
-                <TabsContent
-                  value="queue"
-                  className="flex-1 overflow-hidden mt-0"
-                >
-                  <QueueSection />
-                </TabsContent>
-              </Tabs>
+        <div
+          className={cn(
+            "hidden h-full min-h-0 lg:block",
+            !isDesktopIdle &&
+              "lg:grid lg:gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(420px,0.92fr)_minmax(0,1.08fr)]",
+          )}
+        >
+          {isDesktopIdle ? (
+            <div className="mx-auto flex h-full w-full max-w-[1180px] min-h-0 items-center justify-center">
+              <PlayerSection isIdle onSearchClick={handleSearchOpen} />
             </div>
-          </div>
+          ) : (
+            <>
+              {/* 左側：播放器 */}
+              <div className="flex min-h-0 flex-col gap-6">
+                <PlayerSection onSearchClick={handleSearchOpen} />
+              </div>
+
+              {/* 右側：標籤切換（歌詞/播放佇列） */}
+              <div className="flex h-full min-h-0 flex-col gap-6">
+                <div className="flex-1 min-h-0">
+                  <Tabs
+                    value={desktopActiveTab}
+                    onValueChange={setDesktopActiveTab}
+                    className="flex h-full min-h-0 flex-col"
+                  >
+                    <div className="pb-4">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="lyrics">歌詞</TabsTrigger>
+                        <TabsTrigger value="queue">播放佇列</TabsTrigger>
+                        <TabsIndicator />
+                      </TabsList>
+                    </div>
+                    <TabsContent
+                      value="lyrics"
+                      className="mt-0 flex-1 min-h-0 overflow-hidden"
+                    >
+                      <LyricsDisplay isVisible={desktopActiveTab === "lyrics"} />
+                    </TabsContent>
+                    <TabsContent
+                      value="queue"
+                      className="mt-0 flex-1 min-h-0 overflow-hidden"
+                    >
+                      <QueueSection />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 手機版：根據 TabBar 狀態動態切換內容 */}
@@ -81,7 +106,7 @@ function App() {
           {mobileActiveTab === "search" && <MobileContent />}
           {mobileActiveTab === "lyrics" && (
             <div className="h-full pb-[168px] overflow-hidden">
-              <LyricsDisplay />
+              <LyricsDisplay isVisible={mobileActiveTab === "lyrics"} />
             </div>
           )}
           {mobileActiveTab === "queue" && (

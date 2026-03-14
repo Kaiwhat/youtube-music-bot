@@ -11,7 +11,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "relative inline-flex h-10 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800/50 p-1 text-gray-500 dark:text-gray-400",
+      "desktop-segmented relative inline-flex h-16 items-center justify-center overflow-hidden rounded-[30px] p-1 text-[var(--text-muted)]",
       className,
     )}
     {...props}
@@ -26,12 +26,10 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Tab
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2",
+      "relative z-10 inline-flex h-full flex-1 items-center justify-center whitespace-nowrap rounded-[24px] px-6 py-3 text-[1.05rem] font-semibold transition-all",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0",
       "disabled:pointer-events-none disabled:opacity-50",
-      "data-[selected]:bg-white data-[selected]:text-gray-950 data-[selected]:shadow-sm",
-      "dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300",
-      "dark:data-[selected]:bg-gray-800 dark:data-[selected]:text-gray-50",
+      "data-[selected]:text-[var(--text-primary)] data-[selected]:drop-shadow-[0_1px_0_rgba(255,255,255,0.25)]",
       className,
     )}
     {...props}
@@ -46,7 +44,7 @@ const TabsIndicator = React.forwardRef<
   <TabsPrimitive.Indicator
     ref={ref}
     className={cn(
-      "absolute bottom-0 h-0.5 bg-gray-900 dark:bg-gray-50 transition-all duration-300",
+      "desktop-segmented-indicator pointer-events-none absolute left-[var(--active-tab-left)] top-[var(--active-tab-top)] z-0 h-[var(--active-tab-height)] w-[var(--active-tab-width)] rounded-[24px] transition-[left,width,height,transform] duration-300",
       className,
     )}
     {...props}
@@ -61,8 +59,7 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Panel
     ref={ref}
     className={cn(
-      "mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2",
-      "dark:ring-offset-gray-950 dark:focus-visible:ring-gray-300",
+      "mt-2 ring-offset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
       className,
     )}
     {...props}
