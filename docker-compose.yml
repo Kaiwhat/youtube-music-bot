@@ -23,7 +23,7 @@ services:
     #   - PULSE_SERVER=unix:/run/user/1000/pulse/native
 
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     container_name: watchtower
     restart: unless-stopped
     volumes:
