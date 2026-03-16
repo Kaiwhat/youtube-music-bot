@@ -1,6 +1,7 @@
 import { spawn, execSync, type ChildProcess } from "node:child_process";
 import { connect, type Socket } from "node:net";
 import { log } from "../utils/logger.ts";
+import { getMpvYtdlRawOptions } from "../utils/ytdlp.ts";
 
 export type PlayerEventCallback = (event: {
   timePos?: number;
@@ -374,6 +375,8 @@ class PlayerService {
           }
         };
 
+        const ytdlRawOptions = getMpvYtdlRawOptions();
+
         const mpvArgs = [
           "--no-video",
           `--volume=${this.currentVolume}`,
@@ -384,6 +387,9 @@ class PlayerService {
           "--cache-secs=30",
           "--network-timeout=60", // 增加超時時間（樹莓派需要更長）
           "--gapless-audio=yes",
+          ...(ytdlRawOptions.length > 0
+            ? [`--ytdl-raw-options=${ytdlRawOptions.join(",")}`]
+            : []),
           ...getAudioArgs(),
           url,
         ];

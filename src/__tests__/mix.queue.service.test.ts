@@ -95,27 +95,30 @@ describe("QueueService mix creation", () => {
     const playerService = getPlayerService();
     const musicService = getMusicService();
     let stopCalls = 0;
-    let playCalls = 0;
+    let playUrlCalls = 0;
     let getMixTracksCalls = 0;
+    let getStreamUrlCalls = 0;
 
     stubMethod(playerService, "stop", async () => {
       stopCalls++;
     });
     stubMethod(playerService, "isCurrentlyPlaying", () => true);
-    stubMethod(playerService, "play", async (videoId: string) => {
-      playCalls++;
-      expect(videoId).toBe(baseTrack.videoId);
+    stubMethod(playerService, "play", async () => {
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
-    stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
+    stubMethod(playerService, "playUrl", async (url: string) => {
+      playUrlCalls++;
+      expect(url).toBe("https://stream/base-track");
     });
     stubMethod(musicService, "getMixTracks", async (videoId: string) => {
       getMixTracksCalls++;
       expect(videoId).toBe(baseTrack.videoId);
       return mixTracks;
     });
-    stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
+    stubMethod(musicService, "getStreamUrl", async (videoId: string) => {
+      getStreamUrlCalls++;
+      expect(videoId).toBe(baseTrack.videoId);
+      return { url: "https://stream/base-track", source: "yt-dlp" as const };
     });
     stubMethod(musicService, "getLyrics", async () => []);
 
@@ -130,8 +133,9 @@ describe("QueueService mix creation", () => {
     const state = queueService.getState();
 
     expect(stopCalls).toBeGreaterThanOrEqual(1);
-    expect(playCalls).toBe(1);
+    expect(playUrlCalls).toBe(1);
     expect(getMixTracksCalls).toBe(1);
+    expect(getStreamUrlCalls).toBe(1);
     expect(tracks).toEqual([baseTrack, ...mixTracks]);
     expectMixTrack(state.currentTrack!, baseTrack);
     expect(state.duration).toBe(baseTrack.duration);
@@ -147,18 +151,18 @@ describe("QueueService mix creation", () => {
     const musicService = getMusicService();
     let resolveMixTracks: ((tracks: Track[]) => void) | null = null;
     let notifyMixFetchStarted: (() => void) | null = null;
-    let playCalls = 0;
+    let playUrlCalls = 0;
     const mixFetchStarted = new Promise<void>((resolve) => {
       notifyMixFetchStarted = resolve;
     });
 
     stubMethod(playerService, "stop", async () => {});
-    stubMethod(playerService, "play", async (videoId: string) => {
-      playCalls++;
-      expect(videoId).toBe(baseTrack.videoId);
+    stubMethod(playerService, "play", async () => {
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
-    stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
+    stubMethod(playerService, "playUrl", async (url: string) => {
+      playUrlCalls++;
+      expect(url).toBe("https://stream/base-track");
     });
     stubMethod(musicService, "getMixTracks", async () => {
       notifyMixFetchStarted?.();
@@ -167,7 +171,7 @@ describe("QueueService mix creation", () => {
       });
     });
     stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
+      return { url: "https://stream/base-track", source: "youtube-ext" as const };
     });
     stubMethod(musicService, "getLyrics", async () => []);
 
@@ -175,7 +179,7 @@ describe("QueueService mix creation", () => {
 
     await mixFetchStarted;
 
-    expect(playCalls).toBe(1);
+    expect(playUrlCalls).toBe(1);
     expectMixTrack(queueService.getState().currentTrack!, baseTrack);
     expect(queueService.getQueue()).toEqual([]);
 
@@ -196,27 +200,27 @@ describe("QueueService mix creation", () => {
     const queueService = getQueueService();
     const playerService = getPlayerService();
     const musicService = getMusicService();
-    let playCalls = 0;
+    let playUrlCalls = 0;
 
     stubMethod(playerService, "stop", async () => {});
     stubMethod(playerService, "play", async () => {
-      playCalls++;
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
     stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
+      playUrlCalls++;
     });
     stubMethod(musicService, "getMixTracks", async () => {
       throw new Error("up next failed");
     });
     stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
+      return { url: "https://stream/base-track", source: "youtube-ext" as const };
     });
     stubMethod(musicService, "getLyrics", async () => []);
 
     const tracks = await queueService.createMixFromTrack(baseTrack);
     const state = queueService.getState();
 
-    expect(playCalls).toBe(1);
+    expect(playUrlCalls).toBe(1);
     expect(tracks).toEqual([baseTrack]);
     expectMixTrack(state.currentTrack!, baseTrack);
     expect(state.queue).toEqual([]);
@@ -241,47 +245,14 @@ describe("QueueService mix creation", () => {
         handleError: (error: Error) => void,
       ) => void;
     };
-    let playCalls = 0;
+    let playUrlCalls = 0;
 
     player.mpvProcess = oldProcess;
     player.isPlaying = true;
     player.eofHandled = false;
 
-    stubMethod(playerService, "play", async (videoId: string) => {
-      playCalls++;
-      expect(videoId).toBe(playCalls === 1 ? baseTrack.videoId : mixTracks[0]!.videoId);
-    });
-    stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
-    });
-    stubMethod(musicService, "getMixTracks", async () => mixTracks);
-    stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
-    });
-    stubMethod(musicService, "getLyrics", async () => []);
-
-    const tracks = await queueService.createMixFromTrack(baseTrack);
-
-    player.handleSpawnedProcessExit(oldProcess, 0, null, () => {}, () => {});
-    await Promise.resolve();
-
-    expect(playCalls).toBe(1);
-    expect(tracks).toEqual([baseTrack, ...mixTracks]);
-    expectMixTrack(queueService.getState().currentTrack!, baseTrack);
-    queueService.getQueue().forEach((track, index) =>
-      expectMixTrack(track, mixTracks[index]!),
-    );
-  });
-
-  test("should fall back to direct stream playback when player.play fails", async () => {
-    const queueService = getQueueService();
-    const playerService = getPlayerService();
-    const musicService = getMusicService();
-    let playUrlCalls = 0;
-
-    stubMethod(playerService, "stop", async () => {});
     stubMethod(playerService, "play", async () => {
-      throw new Error("yt-dlp playback failed");
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
     stubMethod(playerService, "playUrl", async (url: string) => {
       playUrlCalls++;
@@ -295,7 +266,40 @@ describe("QueueService mix creation", () => {
 
     const tracks = await queueService.createMixFromTrack(baseTrack);
 
+    player.handleSpawnedProcessExit(oldProcess, 0, null, () => {}, () => {});
+    await Promise.resolve();
+
     expect(playUrlCalls).toBe(1);
+    expect(tracks).toEqual([baseTrack, ...mixTracks]);
+    expectMixTrack(queueService.getState().currentTrack!, baseTrack);
+    queueService.getQueue().forEach((track, index) =>
+      expectMixTrack(track, mixTracks[index]!),
+    );
+  });
+
+  test("should fall back to YouTube URL playback when direct stream playback fails", async () => {
+    const queueService = getQueueService();
+    const playerService = getPlayerService();
+    const musicService = getMusicService();
+    let playCalls = 0;
+
+    stubMethod(playerService, "stop", async () => {});
+    stubMethod(playerService, "play", async (videoId: string) => {
+      playCalls++;
+      expect(videoId).toBe(baseTrack.videoId);
+    });
+    stubMethod(playerService, "playUrl", async () => {
+      throw new Error("stream playback failed");
+    });
+    stubMethod(musicService, "getMixTracks", async () => mixTracks);
+    stubMethod(musicService, "getStreamUrl", async () => {
+      return { url: "https://stream/base-track", source: "youtube-ext" as const };
+    });
+    stubMethod(musicService, "getLyrics", async () => []);
+
+    const tracks = await queueService.createMixFromTrack(baseTrack);
+
+    expect(playCalls).toBe(1);
     expect(tracks).toEqual([baseTrack, ...mixTracks]);
     expectMixTrack(queueService.getState().currentTrack!, baseTrack);
   });
@@ -307,7 +311,7 @@ describe("QueueService mix creation", () => {
 
     stubMethod(playerService, "stop", async () => {});
     stubMethod(playerService, "play", async () => {
-      throw new Error("yt-dlp fallback failed");
+      throw new Error("youtube fallback failed");
     });
     stubMethod(playerService, "playUrl", async () => {
       throw new Error("stream playback failed");
@@ -319,7 +323,7 @@ describe("QueueService mix creation", () => {
     stubMethod(musicService, "getLyrics", async () => []);
 
     await expect(queueService.createMixFromTrack(baseTrack)).rejects.toThrow(
-      "Failed to play track: Base Song. Error: stream playback failed",
+      "Failed to play track: Base Song. Error: youtube fallback failed",
     );
 
     const state = queueService.getState();

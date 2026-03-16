@@ -1,8 +1,10 @@
 import { Innertube, Log, UniversalCache } from "youtubei.js";
+import { spawn } from "node:child_process";
 import type { Track, LyricLine, StreamUrlResult } from "../types/index.ts";
 import { log } from "../utils/logger.ts";
 import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
+import { getYtDlpCliArgs } from "../utils/ytdlp.ts";
 
 // 確保緩存目錄存在
 const cacheDir = join(process.cwd(), ".cache", "youtubei");
@@ -282,6 +284,8 @@ class MusicService {
   async getStreamUrl(videoId: string): Promise<StreamUrlResult> {
     log.info("Attempting stream URL extraction", { videoId });
 
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
     try {
       const yt = await getClient();
 
@@ -331,12 +335,70 @@ class MusicService {
 
       throw new Error("No suitable audio stream found");
     } catch (error) {
-      log.warn("Stream extraction failed, will use yt-dlp fallback", {
+      log.warn("Primary stream extraction failed, trying yt-dlp CLI fallback", {
         error: error instanceof Error ? error.message : String(error),
         videoId,
       });
-      throw error;
+
+      const fallbackUrl = await this.getStreamUrlViaYtDlp(youtubeUrl);
+      return {
+        url: fallbackUrl,
+        source: "yt-dlp",
+      };
     }
+  }
+
+  private async getStreamUrlViaYtDlp(url: string): Promise<string> {
+    const args = getYtDlpCliArgs(url);
+
+    return new Promise<string>((resolve, reject) => {
+      const child = spawn("yt-dlp", args, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout?.on("data", (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on("error", (error) => {
+        reject(error);
+      });
+
+      child.on("exit", (code) => {
+        if (code !== 0) {
+          reject(
+            new Error(
+              stderr.trim() || `yt-dlp exited with code ${code ?? "unknown"}`,
+            ),
+          );
+          return;
+        }
+
+        const urls = stdout
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        const streamUrl = urls[urls.length - 1];
+
+        if (!streamUrl) {
+          reject(new Error("yt-dlp did not return a playable URL"));
+          return;
+        }
+
+        log.info("Stream URL obtained via yt-dlp CLI", {
+          urlLength: streamUrl.length,
+          lineCount: urls.length,
+        });
+        resolve(streamUrl);
+      });
+    });
   }
 
   /**

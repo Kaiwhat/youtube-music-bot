@@ -53,6 +53,6 @@ export interface ApiResponse<T = unknown> {
 // 串流 URL 結果
 export interface StreamUrlResult {
   url: string;
-  source: "youtube-ext" | "invidious";
+  source: "youtube-ext" | "invidious" | "yt-dlp";
   bitrate?: number;
 }

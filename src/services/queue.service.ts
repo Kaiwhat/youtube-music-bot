@@ -322,12 +322,22 @@ class QueueService {
     this.fetchAndBroadcastLyrics();
 
     try {
-      // 先交給 mpv + yt-dlp 處理 YouTube URL，與參考實作一致且更穩定。
-      await getPlayerService().play(nextTrack.videoId);
-      log.info("Playback started successfully via yt-dlp");
+      log.info("Fetching direct stream URL for playback", {
+        videoId: nextTrack.videoId,
+      });
+      const streamResult = await getMusicService().getStreamUrl(nextTrack.videoId);
+      log.info("Direct stream URL obtained", {
+        source: streamResult.source,
+        bitrate: streamResult.bitrate,
+        urlLength: streamResult.url.length,
+      });
+      await getPlayerService().playUrl(streamResult.url);
+      log.info("Playback started successfully via direct stream URL", {
+        source: streamResult.source,
+      });
     } catch (playError) {
-      // Fallback：若 yt-dlp 路徑失敗，再退回直接串流 URL。
-      log.warn("Primary playback failed, falling back to direct stream URL", {
+      // Fallback：若直連串流失敗，再退回 mpv 直接處理 YouTube URL。
+      log.warn("Direct stream playback failed, falling back to YouTube URL", {
         error:
           playError instanceof Error ? playError.message : String(playError),
         stack: playError instanceof Error ? playError.stack : undefined,
@@ -335,21 +345,10 @@ class QueueService {
       });
 
       try {
-        log.info("Fetching stream URL for playback fallback", {
-          videoId: nextTrack.videoId,
-        });
-        const streamResult = await getMusicService().getStreamUrl(
-          nextTrack.videoId,
-        );
-        log.info("Stream URL obtained", {
-          source: streamResult.source,
-          urlLength: streamResult.url.length,
-          urlPrefix: streamResult.url.substring(0, 50) + "...",
-        });
-        await getPlayerService().playUrl(streamResult.url);
-        log.info("Fallback stream playback succeeded");
+        await getPlayerService().play(nextTrack.videoId);
+        log.info("Fallback playback started successfully via YouTube URL");
       } catch (fallbackError) {
-        log.error("Both primary playback and stream fallback failed", {
+        log.error("Both direct stream playback and YouTube URL fallback failed", {
           playError:
             playError instanceof Error ? playError.message : String(playError),
           fallbackError:

@@ -82,22 +82,25 @@ describe("QueueService radio mode", () => {
     const queueService = getQueueService();
     const playerService = getPlayerService();
     const musicService = getMusicService();
-    const playCalls: string[] = [];
+    const playUrlCalls: string[] = [];
     const mixSeeds: string[] = [];
 
     stubMethod(playerService, "isCurrentlyPlaying", () => false);
-    stubMethod(playerService, "play", async (videoId: string) => {
-      playCalls.push(videoId);
+    stubMethod(playerService, "play", async () => {
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
-    stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
+    stubMethod(playerService, "playUrl", async (url: string) => {
+      playUrlCalls.push(url);
     });
     stubMethod(musicService, "getMixTracks", async (videoId: string) => {
       mixSeeds.push(videoId);
       return radioTracks;
     });
-    stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
+    stubMethod(musicService, "getStreamUrl", async (videoId: string) => {
+      return {
+        url: `https://stream/${videoId}`,
+        source: "youtube-ext" as const,
+      };
     });
     stubMethod(musicService, "getLyrics", async () => []);
 
@@ -108,7 +111,10 @@ describe("QueueService radio mode", () => {
 
     const state = queueService.getState();
 
-    expect(playCalls).toEqual(["base-track", "radio-1"]);
+    expect(playUrlCalls).toEqual([
+      "https://stream/base-track",
+      "https://stream/radio-1",
+    ]);
     expect(mixSeeds[0]).toBe(baseTrack.videoId);
     expect(state.radioEnabled).toBe(true);
     expect(state.lastPlayedTrack?.videoId).toBe("base-track");
@@ -124,13 +130,16 @@ describe("QueueService radio mode", () => {
     const musicService = getMusicService();
 
     stubMethod(playerService, "isCurrentlyPlaying", () => false);
-    stubMethod(playerService, "play", async () => {});
-    stubMethod(playerService, "playUrl", async () => {
-      throw new Error("playUrl() should not be used when play() succeeds");
+    stubMethod(playerService, "play", async () => {
+      throw new Error("play() should not be used when playUrl() succeeds");
     });
+    stubMethod(playerService, "playUrl", async () => {});
     stubMethod(musicService, "getMixTracks", async () => radioTracks);
-    stubMethod(musicService, "getStreamUrl", async () => {
-      throw new Error("getStreamUrl() should not be used when play() succeeds");
+    stubMethod(musicService, "getStreamUrl", async (videoId: string) => {
+      return {
+        url: `https://stream/${videoId}`,
+        source: "youtube-ext" as const,
+      };
     });
     stubMethod(musicService, "getLyrics", async () => []);
 
