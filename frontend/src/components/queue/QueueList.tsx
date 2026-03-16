@@ -12,7 +12,10 @@ interface QueueListProps {
   queue: Track[];
   mobile?: boolean;
   onRemove: (index: number) => void;
+  onToggleFavorite: (track: Track) => void;
   onAddToPlaylist: (track: Track) => void;
+  favoriteTrackIds: Set<string>;
+  favoriteDisabled?: boolean;
   onReorder: (fromIndex: number, toIndex: number) => void;
   removingIndex: number | null;
   draggingIndex: number | null;
@@ -26,7 +29,10 @@ export const QueueList = ({
   queue,
   mobile = false,
   onRemove,
+  onToggleFavorite,
   onAddToPlaylist,
+  favoriteTrackIds,
+  favoriteDisabled = false,
   onReorder,
   removingIndex,
   draggingIndex,
@@ -149,7 +155,10 @@ export const QueueList = ({
           index={index}
           mobile={mobile}
           onRemove={onRemove}
+          onToggleFavorite={onToggleFavorite}
           onAddToPlaylist={onAddToPlaylist}
+          isFavorite={favoriteTrackIds.has(track.videoId)}
+          favoriteDisabled={favoriteDisabled}
           isRemoving={removingIndex === index}
           isNext={index === 0}
           isDragging={draggingIndex === index}

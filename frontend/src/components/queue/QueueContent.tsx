@@ -9,6 +9,8 @@ import { api } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { reorderItems } from "@/utils/reorder";
 
+const EMPTY_FAVORITES: Array<{ videoId: string }> = [];
+
 interface QueueContentProps {
   className?: string;
   mobile?: boolean;
@@ -27,8 +29,16 @@ export const QueueContent = ({ className, mobile = false }: QueueContentProps) =
   const updatePlaybackState = usePlayerStore(
     (state) => state.updatePlaybackState,
   );
+  const libraryReady = useLibraryStore((state) => state.ready);
+  const favorites = useLibraryStore(
+    (state) => state.snapshot?.favorites ?? EMPTY_FAVORITES,
+  );
+  const toggleFavorite = useLibraryStore((state) => state.toggleFavorite);
   const openPlaylistPicker = useLibraryStore((state) => state.openPlaylistPicker);
   const { showToast } = useToast();
+  const favoriteTrackIds = new Set(
+    favorites.map((favorite) => favorite.videoId),
+  );
 
   const handleRemove = async (index: number) => {
     setRemovingIndex(index);
@@ -77,6 +87,25 @@ export const QueueContent = ({ className, mobile = false }: QueueContentProps) =
     setDropTarget(null);
   };
 
+  const handleToggleFavorite = async (track: (typeof queue)[number]) => {
+    if (!libraryReady) {
+      showToast({ message: "媒體庫正在初始化", type: "info" });
+      return;
+    }
+
+    const wasFavorite = favoriteTrackIds.has(track.videoId);
+
+    try {
+      await toggleFavorite(track);
+      showToast({
+        message: wasFavorite ? "已移除收藏" : "已加入收藏",
+        type: "success",
+      });
+    } catch {
+      showToast({ message: "收藏更新失敗", type: "error" });
+    }
+  };
+
   if (queue.length === 0) {
     return <Empty title="播放佇列為空" description="搜尋並加入歌曲到佇列" />;
   }
@@ -94,9 +123,12 @@ export const QueueContent = ({ className, mobile = false }: QueueContentProps) =
         queue={queue}
         mobile={mobile}
         onRemove={handleRemove}
+        onToggleFavorite={handleToggleFavorite}
         onReorder={handleReorder}
         removingIndex={removingIndex}
         onAddToPlaylist={openPlaylistPicker}
+        favoriteTrackIds={favoriteTrackIds}
+        favoriteDisabled={!libraryReady}
         draggingIndex={draggingIndex}
         dropTarget={dropTarget}
         onDragStart={setDraggingIndex}

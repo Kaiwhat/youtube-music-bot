@@ -3,7 +3,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { formatTime } from "@/utils/format";
 import type { Track } from "@/types";
 import { cn } from "@/lib/utils";
-import { GripVertical, Library } from "lucide-react";
+import { GripVertical, Heart, Library } from "lucide-react";
 import type { DragEvent, TouchEvent } from "react";
 
 interface QueueItemProps {
@@ -11,7 +11,10 @@ interface QueueItemProps {
   index: number;
   mobile?: boolean;
   onRemove: (index: number) => void;
+  onToggleFavorite: (track: Track) => void;
   onAddToPlaylist: (track: Track) => void;
+  isFavorite?: boolean;
+  favoriteDisabled?: boolean;
   isRemoving?: boolean;
   isNext?: boolean;
   isDragging?: boolean;
@@ -31,7 +34,10 @@ export const QueueItem = ({
   index,
   mobile = false,
   onRemove,
+  onToggleFavorite,
   onAddToPlaylist,
+  isFavorite = false,
+  favoriteDisabled = false,
   isRemoving,
   isNext = false,
   isDragging = false,
@@ -135,7 +141,31 @@ export const QueueItem = ({
             {track.artist} • {formatTime(track.duration)}
           </p>
         </div>
-        <div className={cn("shrink-0", mobile ? "flex flex-col gap-1.5 pt-0.5" : "flex items-center")}>
+        <div
+          className={cn(
+            "shrink-0",
+            mobile ? "flex flex-col gap-1.5 pt-0.5" : "flex items-center gap-1",
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onToggleFavorite(track)}
+            disabled={favoriteDisabled}
+            title={isFavorite ? "取消收藏" : "收藏"}
+            className={cn(
+              mobile
+                ? "h-8 w-8 rounded-xl px-0 text-[var(--text-secondary)]"
+                : "opacity-40 transition-opacity group-hover:opacity-100",
+              isFavorite &&
+                "text-[var(--accent)] opacity-100 hover:text-[var(--accent)]",
+            )}
+          >
+            <Heart
+              className="h-4 w-4"
+              fill={isFavorite ? "currentColor" : "none"}
+            />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
