@@ -6,7 +6,6 @@ ARG APP_GIT_SHA=dev
 FROM node:20-slim AS frontend-builder
 ARG APP_VERSION
 ARG APP_GIT_SHA
-ENV NODE_ENV=production
 ENV APP_VERSION=${APP_VERSION}
 ENV APP_GIT_SHA=${APP_GIT_SHA}
 WORKDIR /app
@@ -17,6 +16,7 @@ WORKDIR /app/frontend
 RUN npm ci
 WORKDIR /app
 COPY frontend/ ./frontend/
+ENV NODE_ENV=production
 RUN cd frontend && npm run build
 
 # Stage 2: 構建後端
