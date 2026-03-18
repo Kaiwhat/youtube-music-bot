@@ -8,6 +8,8 @@ import type {
   Playlist,
   PlaylistTrackEntry,
   SavedMix,
+  SyncDeviceKind,
+  SyncDeviceMetadata,
   SyncSessionDevice,
   SyncedLibraryPayload,
 } from "@/types/library";
@@ -42,9 +44,16 @@ interface LibraryStore {
     options?: { pairCode?: string | null; error?: string | null },
   ) => void;
   updatePairedDevices: (devices: SyncSessionDevice[]) => Promise<void>;
+  updateProfileName: (profileName: string) => Promise<void>;
+  refreshCurrentDevice: (device: {
+    kind: SyncDeviceKind;
+    reportedName: string;
+    metadata: SyncDeviceMetadata | null;
+  }) => Promise<void>;
   applySyncSession: (session: {
     sessionId: string;
     profileId: string;
+    profileName?: string;
     devices: SyncSessionDevice[];
     deviceToken: string;
     pairCode?: string | null;
@@ -201,11 +210,46 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       { touchUpdatedAt: false },
     );
   },
+  updateProfileName: async (profileName) => {
+    await persistSnapshot(
+      (snapshot) => ({
+        ...snapshot,
+        profileName: profileName.trim() || snapshot.profileName,
+      }),
+      { touchUpdatedAt: false },
+    );
+  },
+  refreshCurrentDevice: async (device) => {
+    const reportedName = device.reportedName.trim() || "Desktop · Unknown";
+    await persistSnapshot(
+      (snapshot) => ({
+        ...snapshot,
+        pairedDevices: snapshot.pairedDevices.map((pairedDevice) => {
+          if (pairedDevice.id !== snapshot.deviceId) {
+            return pairedDevice;
+          }
+
+          const displayName = pairedDevice.customName ?? reportedName;
+
+          return {
+            ...pairedDevice,
+            name: displayName,
+            reportedName,
+            displayName,
+            kind: device.kind,
+            metadata: device.metadata,
+          };
+        }),
+      }),
+      { touchUpdatedAt: false },
+    );
+  },
   applySyncSession: async (session) => {
     await persistSnapshot(
       (snapshot) => ({
         ...snapshot,
         profileId: session.profileId,
+        profileName: session.profileName?.trim() || snapshot.profileName,
         syncSessionId: session.sessionId,
         syncDeviceToken: session.deviceToken,
         pairedDevices: mergePairedDevices(
@@ -440,4 +484,24 @@ export function getCurrentDevice(snapshot: LibrarySnapshot | null): PairedDevice
   return (
     snapshot.pairedDevices.find((device) => device.isCurrentDevice) ?? null
   );
+}
+
+export function getCurrentRequester(
+  snapshot: LibrarySnapshot | null,
+): Track["requestedBy"] | undefined {
+  if (!snapshot) {
+    return undefined;
+  }
+
+  const profileId = snapshot.profileId.trim();
+  const profileName = snapshot.profileName.trim();
+
+  if (!profileId || !profileName) {
+    return undefined;
+  }
+
+  return {
+    profileId,
+    profileName,
+  };
 }
