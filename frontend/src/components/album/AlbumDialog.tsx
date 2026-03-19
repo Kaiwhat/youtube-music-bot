@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Heart, Library, Plus, X } from "lucide-react";
 import { api } from "@/services/api";
 import type { AlbumDetails, Track } from "@/types";
 import { getCurrentRequester, useLibraryStore } from "@/stores/libraryStore";
@@ -11,22 +11,39 @@ import { Empty } from "@/components/ui/empty";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import { formatTime } from "@/utils/format";
+
+const EMPTY_FAVORITES: Array<{ videoId: string }> = [];
 
 export const AlbumDialog = () => {
   const isOpen = useAlbumDialogStore((state) => state.isOpen);
   const selectedAlbum = useAlbumDialogStore((state) => state.selectedAlbum);
   const closeAlbum = useAlbumDialogStore((state) => state.closeAlbum);
   const selectedAlbumId = selectedAlbum?.id ?? null;
+  const libraryReady = useLibraryStore((state) => state.ready);
+  const favorites = useLibraryStore(
+    (state) => state.snapshot?.favorites ?? EMPTY_FAVORITES,
+  );
   const currentRequester = useLibraryStore((state) =>
     getCurrentRequester(state.snapshot),
   );
+  const toggleFavorite = useLibraryStore((state) => state.toggleFavorite);
+  const openPlaylistPicker = useLibraryStore((state) => state.openPlaylistPicker);
   const { showToast } = useToast();
   const [albumDetails, setAlbumDetails] = useState<AlbumDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addingTrackId, setAddingTrackId] = useState<string | null>(null);
+  const [isQueueingAlbum, setIsQueueingAlbum] = useState(false);
+  const [togglingFavoriteTrackId, setTogglingFavoriteTrackId] = useState<string | null>(
+    null,
+  );
   const [reloadToken, setReloadToken] = useState(0);
+  const favoriteTrackIds = useMemo(
+    () => new Set(favorites.map((favorite) => favorite.videoId)),
+    [favorites],
+  );
 
   useEffect(() => {
     if (!isOpen || !selectedAlbumId) {
@@ -98,6 +115,71 @@ export const AlbumDialog = () => {
     }
   };
 
+  const handleToggleFavorite = async (track: Track) => {
+    if (!libraryReady) {
+      showToast({ message: "媒體庫正在初始化", type: "info" });
+      return;
+    }
+
+    const wasFavorite = favoriteTrackIds.has(track.videoId);
+    setTogglingFavoriteTrackId(track.videoId);
+
+    try {
+      await toggleFavorite(track);
+      showToast({
+        message: wasFavorite ? "已移除收藏" : "已加入收藏",
+        type: "success",
+      });
+    } catch {
+      showToast({ message: "收藏更新失敗", type: "error" });
+    } finally {
+      setTogglingFavoriteTrackId((currentTrackId) =>
+        currentTrackId === track.videoId ? null : currentTrackId,
+      );
+    }
+  };
+
+  const handleAddToPlaylist = (track: Track) => {
+    if (!libraryReady) {
+      showToast({ message: "媒體庫正在初始化", type: "info" });
+      return;
+    }
+
+    openPlaylistPicker(track);
+  };
+
+  const handleQueueAlbum = async () => {
+    if (!albumDetails || albumDetails.tracks.length === 0) {
+      return;
+    }
+
+    setIsQueueingAlbum(true);
+
+    try {
+      const response = await api.queueAlbum(
+        albumDetails.id,
+        albumDetails.tracks,
+        currentRequester,
+      );
+
+      if (response.success) {
+        showToast({
+          message: `已加入整張專輯：${albumDetails.title}`,
+          type: "success",
+        });
+      } else {
+        showToast({
+          message: response.error || "加入整張專輯失敗",
+          type: "error",
+        });
+      }
+    } catch {
+      showToast({ message: "加入整張專輯失敗", type: "error" });
+    } finally {
+      setIsQueueingAlbum(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeAlbum()}>
       <DialogContent className="flex h-[min(90vh,920px)] w-[min(96vw,980px)] max-w-[980px] flex-col p-0">
@@ -120,26 +202,36 @@ export const AlbumDialog = () => {
             </DialogClose>
           </div>
 
-          <div className="flex items-center gap-4 rounded-[28px] border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] p-4">
-            <Avatar
-              src={albumDetails?.thumbnail}
-              alt={albumDetails?.title || selectedAlbum?.name || "專輯"}
-              size="lg"
-              className="h-24 w-24 rounded-[24px] border border-[color:var(--surface-border)]"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Album
-              </p>
-              <p className="mt-2 text-xl font-semibold text-[var(--text-primary)]">
-                {albumDetails?.title || selectedAlbum?.name || "專輯"}
-              </p>
-              {albumDetails?.subtitle ? (
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  {albumDetails.subtitle}
+          <div className="flex flex-col gap-4 rounded-[28px] border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar
+                src={albumDetails?.thumbnail}
+                alt={albumDetails?.title || selectedAlbum?.name || "專輯"}
+                size="lg"
+                className="h-24 w-24 rounded-[24px] border border-[color:var(--surface-border)]"
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Album
                 </p>
-              ) : null}
+                <p className="mt-2 text-xl font-semibold text-[var(--text-primary)]">
+                  {albumDetails?.title || selectedAlbum?.name || "專輯"}
+                </p>
+                {albumDetails?.subtitle ? (
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    {albumDetails.subtitle}
+                  </p>
+                ) : null}
+              </div>
             </div>
+            <Button
+              className="h-11 rounded-2xl px-4 sm:shrink-0"
+              onClick={() => void handleQueueAlbum()}
+              disabled={!albumDetails || albumDetails.tracks.length === 0 || isQueueingAlbum}
+            >
+              <Plus className="h-4 w-4" />
+              {isQueueingAlbum ? "加入中..." : "整張專輯加入佇列"}
+            </Button>
           </div>
         </div>
 
@@ -166,48 +258,87 @@ export const AlbumDialog = () => {
               </div>
             ) : albumDetails && albumDetails.tracks.length > 0 ? (
               <div className="space-y-3">
-                {albumDetails.tracks.map((track, index) => (
-                  <div
-                    key={`${track.videoId}-${index}`}
-                    className="surface-card grid items-center gap-4 rounded-[24px] border px-4 py-4 md:grid-cols-[auto_minmax(0,1fr)_auto]"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="w-5 text-center text-sm font-semibold text-[var(--text-muted)]">
-                        {index + 1}
-                      </span>
-                      <Avatar
-                        src={track.thumbnail}
-                        alt={track.title}
-                        size="md"
-                        className="rounded-2xl"
-                      />
-                    </div>
+                {albumDetails.tracks.map((track, index) => {
+                  const isFavorite = favoriteTrackIds.has(track.videoId);
+                  const isTogglingFavorite = togglingFavoriteTrackId === track.videoId;
 
-                    <div className="min-w-0">
-                      <p
-                        className="truncate text-base font-semibold text-[var(--text-primary)]"
-                        title={track.title}
-                      >
-                        {track.title}
-                      </p>
-                      <p
-                        className="mt-1 truncate text-sm text-[var(--text-secondary)]"
-                        title={`${track.artist} · ${formatTime(track.duration)}`}
-                      >
-                        {track.artist} · {formatTime(track.duration)}
-                      </p>
-                    </div>
-
-                    <Button
-                      className="rounded-2xl"
-                      onClick={() => void handleAddToQueue(track)}
-                      disabled={addingTrackId === track.videoId}
+                  return (
+                    <div
+                      key={`${track.videoId}-${index}`}
+                      className="surface-card grid items-center gap-4 rounded-[24px] border px-4 py-4 md:grid-cols-[auto_minmax(0,1fr)_auto]"
                     >
-                      <Plus className="h-4 w-4" />
-                      {addingTrackId === track.videoId ? "加入中..." : "加入佇列"}
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-4">
+                        <span className="w-5 text-center text-sm font-semibold text-[var(--text-muted)]">
+                          {index + 1}
+                        </span>
+                        <Avatar
+                          src={track.thumbnail}
+                          alt={track.title}
+                          size="md"
+                          className="rounded-2xl"
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p
+                          className="truncate text-base font-semibold text-[var(--text-primary)]"
+                          title={track.title}
+                        >
+                          {track.title}
+                        </p>
+                        <p
+                          className="mt-1 truncate text-sm text-[var(--text-secondary)]"
+                          title={`${track.artist} · ${formatTime(track.duration)}`}
+                        >
+                          {track.artist} · {formatTime(track.duration)}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <div className="grid w-max max-w-full justify-items-stretch gap-2">
+                          <div className="grid grid-cols-[max-content_max-content] justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "h-10 rounded-2xl px-3",
+                                isFavorite &&
+                                  "border-[color:var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]",
+                              )}
+                              onClick={() => void handleToggleFavorite(track)}
+                              disabled={isTogglingFavorite}
+                            >
+                              <Heart
+                                className="h-4 w-4"
+                                fill={isFavorite ? "currentColor" : "none"}
+                              />
+                              {isTogglingFavorite
+                                ? "處理中..."
+                                : isFavorite
+                                  ? "已收藏"
+                                  : "收藏"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="h-10 rounded-2xl px-3"
+                              onClick={() => handleAddToPlaylist(track)}
+                            >
+                              <Library className="h-4 w-4" />
+                              加入歌單
+                            </Button>
+                          </div>
+                          <Button
+                            className="h-10 w-full rounded-2xl px-4"
+                            onClick={() => void handleAddToQueue(track)}
+                            disabled={addingTrackId === track.videoId}
+                          >
+                            <Plus className="h-4 w-4" />
+                            {addingTrackId === track.videoId ? "加入中..." : "加入佇列"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <Empty

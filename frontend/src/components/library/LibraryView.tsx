@@ -1100,14 +1100,22 @@ const SavedMixPanel = ({
   onDeleteMix: (mixId: string) => void | Promise<void>;
   mobile?: boolean;
 }) => (
-  <Card className="surface-card rounded-[30px] p-5">
-    <div className="mb-4">
+  <Card
+    className={cn(
+      "surface-card rounded-[30px] p-5",
+      !mobile && "flex h-full min-h-0 flex-col",
+    )}
+  >
+    <div className="mb-4 shrink-0">
       <h3 className="text-xl font-semibold text-[var(--text-primary)]">已儲存 Mix</h3>
       <p className="mt-1 text-sm text-[var(--text-secondary)]">
         把喜歡的推薦組合留在這裡，之後可以快速重播。
       </p>
     </div>
-    <ScrollArea className="w-full" maxHeight={mobile ? "34vh" : "38vh"}>
+    <ScrollArea
+      className={cn("w-full", !mobile && "min-h-0 flex-1 pr-1")}
+      maxHeight={mobile ? "34vh" : undefined}
+    >
       <div className="grid gap-3">
         {savedMixes.length === 0 ? (
           <Empty title="尚未儲存 Mix" description="從搜尋建立 Mix 後，會自動保存在這裡。" />

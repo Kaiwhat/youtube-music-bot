@@ -164,6 +164,7 @@ export const NowPlaying = ({
   );
   const isSidebarCompact = compact && sidebarMode;
   const shouldUseTickerTitle = compact;
+  const shouldUseTickerMeta = compact;
   const requesterLabel = currentTrack.requestedBy?.profileName?.trim() || null;
 
   return (
@@ -221,21 +222,28 @@ export const NowPlaying = ({
           </h2>
           <p
             className={cn(
-              "truncate text-[var(--text-secondary)]",
+              "text-[var(--text-secondary)]",
               isSidebarCompact
                 ? "text-base xl:text-lg"
                 : compact
                   ? "text-lg lg:text-xl"
                   : "text-lg lg:text-lg xl:text-xl",
+              !shouldUseTickerMeta && "truncate",
             )}
             title={currentTrack.artist}
           >
-            {currentTrack.artist}
+            {shouldUseTickerMeta ? (
+              <MarqueeText text={currentTrack.artist} className="block whitespace-nowrap" />
+            ) : (
+              currentTrack.artist
+            )}
           </p>
           <OpenAlbumButton
             album={currentTrack.album}
             trackTitle={currentTrack.title}
+            useMarquee={shouldUseTickerMeta}
             className={cn(
+              shouldUseTickerMeta && "w-full",
               compact ? "text-sm" : "text-xs",
               isSidebarCompact && "text-xs",
             )}

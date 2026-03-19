@@ -87,7 +87,15 @@ export const MarqueeText = ({
     : undefined;
 
   return (
-    <span ref={containerRef} className={cn("player-marquee", className)} title={title ?? text}>
+    <span
+      ref={containerRef}
+      className={cn(
+        "player-marquee",
+        overflowState.isOverflowing && "player-marquee-overflowing",
+        className,
+      )}
+      title={title ?? text}
+    >
       <span
         className={cn(
           "player-marquee-track",

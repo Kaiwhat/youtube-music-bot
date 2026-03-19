@@ -184,6 +184,20 @@ class ApiService {
     );
   }
 
+  async queueAlbum(
+    albumId: string,
+    tracks: Track[],
+    requestedBy?: RequestedByPayload,
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(
+      `/albums/${encodeURIComponent(albumId)}/queue`,
+      {
+        method: "POST",
+        body: JSON.stringify({ tracks, requestedBy }),
+      },
+    );
+  }
+
   async createSyncSession(payload: {
     sessionId?: string | null;
     deviceToken?: string | null;

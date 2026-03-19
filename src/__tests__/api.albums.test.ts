@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import api from "../routes/api.ts";
-import type { AlbumDetails } from "../types/index.ts";
+import type { AlbumDetails, QueueOrigin, Track } from "../types/index.ts";
 import {
   __resetMusicServiceForTests,
   getMusicService,
 } from "../services/music.service.ts";
+import {
+  __resetQueueServiceForTests,
+  getQueueService,
+} from "../services/queue.service.ts";
 
 type RestorableMethod = {
   target: Record<string, unknown>;
@@ -59,11 +63,13 @@ describe("/api/albums/:albumId", () => {
   beforeEach(() => {
     restoreMethods();
     __resetMusicServiceForTests();
+    __resetQueueServiceForTests();
   });
 
   afterEach(() => {
     restoreMethods();
     __resetMusicServiceForTests();
+    __resetQueueServiceForTests();
   });
 
   test("should return normalized album details", async () => {
@@ -102,6 +108,95 @@ describe("/api/albums/:albumId", () => {
     expect(await response.json()).toEqual({
       success: false,
       error: "Album not found",
+    });
+  });
+});
+
+describe("/api/albums/:albumId/queue", () => {
+  beforeEach(() => {
+    restoreMethods();
+    __resetMusicServiceForTests();
+    __resetQueueServiceForTests();
+  });
+
+  afterEach(() => {
+    restoreMethods();
+    __resetMusicServiceForTests();
+    __resetQueueServiceForTests();
+  });
+
+  test("should reject album queue requests without tracks", async () => {
+    const response = await api.request("/albums/album-123/queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tracks: [] }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: "tracks is required",
+    });
+  });
+
+  test("should append all album tracks to the queue", async () => {
+    const queueService = getQueueService();
+    const received: {
+      tracks: Track[];
+      origin?: QueueOrigin;
+      requestedBy?: Track["requestedBy"];
+    } = {
+      tracks: [],
+    };
+
+    stubMethod(
+      queueService,
+      "appendTracksToQueue",
+      (async (tracks: Track[], origin, options = {}) => {
+        received.tracks = tracks;
+        received.origin = origin;
+        received.requestedBy = options.requestedBy;
+      }) as typeof queueService.appendTracksToQueue,
+    );
+
+    const response = await api.request("/albums/album-123/queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tracks: albumDetails.tracks,
+        requestedBy: {
+          profileId: "profile-album",
+          profileName: "Album Fan",
+        },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(received.tracks).toEqual(albumDetails.tracks);
+    expect(received.origin).toBe("manual");
+    expect(received.requestedBy).toEqual({
+      profileId: "profile-album",
+      profileName: "Album Fan",
+    });
+  });
+
+  test("should surface album queue failures as 500 responses", async () => {
+    const queueService = getQueueService();
+
+    stubMethod(queueService, "appendTracksToQueue", async () => {
+      throw new Error("album queue failed");
+    });
+
+    const response = await api.request("/albums/album-123/queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tracks: albumDetails.tracks }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: "Failed to queue album",
     });
   });
 });

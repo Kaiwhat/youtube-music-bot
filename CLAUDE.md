@@ -7,3 +7,8 @@
 ## Communication
 
 - Use Traditional Chinese (Taiwan) when communicating with the user.
+
+## Local Validation
+
+- Before asking the user to manually inspect UI or integration changes, start the split development servers for this repo first: backend with `bun run dev` and frontend with `npm run dev:frontend` (or `cd frontend && npm run dev`).
+- Report the actual reachable local URLs/ports in handoff notes instead of assuming defaults.
