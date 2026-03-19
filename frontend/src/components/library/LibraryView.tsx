@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar } from "@/components/ui/avatar";
+import { OpenAlbumButton } from "@/components/album/OpenAlbumButton";
 import { api } from "@/services/api";
 import { formatTime } from "@/utils/format";
 import { formatDeviceDetail } from "@/utils/device-info";
@@ -129,14 +130,15 @@ export const LibraryView = ({ isMobile = false }: LibraryViewProps) => {
       `${entry.track.title} ${entry.track.artist}`.toLowerCase().includes(normalizedQuery),
     );
   }, [normalizedQuery, snapshot?.history]);
+  const snapshotProfileName = snapshot?.profileName;
 
   useEffect(() => {
-    if (!snapshot) {
+    if (snapshotProfileName == null) {
       return;
     }
 
-    setProfileNameInput(snapshot.profileName);
-  }, [snapshot?.profileName]);
+    setProfileNameInput(snapshotProfileName);
+  }, [snapshotProfileName]);
 
   if (!ready || !snapshot) {
     return (
@@ -347,7 +349,7 @@ export const LibraryView = ({ isMobile = false }: LibraryViewProps) => {
       onDropTrack={async (fromIndex, toIndex) => {
         await reorderPlaylistTracks(selectedPlaylist.id, fromIndex, toIndex);
       }}
-      onOpenAddTrack={openPlaylistPicker}
+      onQueueTrack={(track) => void handleAddTrackToQueue(track)}
       isEditing={editingPlaylistId === selectedPlaylist.id}
       onEditingChange={(isEditing) =>
         setEditingPlaylistId(isEditing ? selectedPlaylist.id : null)
@@ -1018,6 +1020,11 @@ const TrackBrowser = ({
                   >
                     {track.artist} · {formatTime(track.duration)}
                   </p>
+                  <OpenAlbumButton
+                    album={track.album}
+                    trackTitle={track.title}
+                    className="mt-1"
+                  />
                 </div>
               </div>
               <div
@@ -1373,7 +1380,7 @@ interface PlaylistDetailProps {
   onDropTrack: (fromIndex: number, toIndex: number) => Promise<void>;
   onDragStart: (index: number | null) => void;
   onDragEnd: () => void;
-  onOpenAddTrack: (track: PlaylistTrackEntry["track"]) => void;
+  onQueueTrack: (track: PlaylistTrackEntry["track"]) => void;
   onEditingChange: (isEditing: boolean) => void;
 }
 
@@ -1390,7 +1397,7 @@ const PlaylistDetail = ({
   onDropTrack,
   onDragStart,
   onDragEnd,
-  onOpenAddTrack,
+  onQueueTrack,
   onEditingChange,
 }: PlaylistDetailProps) => {
   const [draftName, setDraftName] = useState(playlist.name);
@@ -1490,14 +1497,19 @@ const PlaylistDetail = ({
                 >
                   {entry.track.artist} · {formatTime(entry.track.duration)}
                 </p>
+                <OpenAlbumButton
+                  album={entry.track.album}
+                  trackTitle={entry.track.title}
+                  className="mt-1"
+                />
               </div>
               <div className="grid shrink-0 grid-cols-2 gap-2 md:w-[88px] md:justify-self-end">
                 <Button
                   variant="outline"
                   className="rounded-2xl px-0"
-                  onClick={() => onOpenAddTrack(entry.track)}
-                  aria-label={`加入歌單：${entry.track.title}`}
-                  title="加入歌單"
+                  onClick={() => onQueueTrack(entry.track)}
+                  aria-label={`加入播放佇列：${entry.track.title}`}
+                  title="加入播放佇列"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>

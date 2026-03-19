@@ -4,6 +4,11 @@ import { Github, Music2, Search } from "lucide-react";
 import { useAppUiStore } from "@/stores/appUiStore";
 import { api, type SystemInfoResponse } from "@/services/api";
 import { frontendAppMetadata } from "@/lib/app-metadata";
+import {
+  hasSeenReleaseNotes,
+  markReleaseNotesAsSeen,
+} from "@/lib/release-notes-storage";
+import { getReleaseNotesForVersion } from "@/data/release-notes";
 import { getVersionBadgeVariant } from "@/utils/version";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +28,7 @@ export const Header = ({ onSearchClick }: HeaderProps) => {
   const setDesktopMode = useAppUiStore((state) => state.setDesktopMode);
   const [backendInfo, setBackendInfo] = useState<SystemInfoResponse | null>(null);
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false);
+  const currentReleaseNotes = getReleaseNotesForVersion(frontendAppMetadata.appVersion);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +46,25 @@ export const Header = ({ onSearchClick }: HeaderProps) => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentReleaseNotes) {
+      return;
+    }
+
+    if (hasSeenReleaseNotes(currentReleaseNotes.version)) {
+      return;
+    }
+
+    markReleaseNotesAsSeen(currentReleaseNotes.version);
+    const openTimer = window.setTimeout(() => {
+      setIsVersionDialogOpen(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(openTimer);
+    };
+  }, [currentReleaseNotes]);
 
   const versionBadgeVariant = getVersionBadgeVariant(
     frontendAppMetadata.buildVersion,
@@ -151,11 +176,31 @@ export const Header = ({ onSearchClick }: HeaderProps) => {
             <DialogClose />
             <div className="space-y-5 pr-10">
               <div className="space-y-2">
-                <DialogTitle>版本資訊</DialogTitle>
+                <DialogTitle>版本更新與建置資訊</DialogTitle>
                 <DialogDescription>
-                  目前畫面與 API 實際回報的 build 版本，可直接拿來追蹤部署內容。
+                  可從標頭版本號隨時重新開啟，查看目前版本重點與部署追蹤資訊。
                 </DialogDescription>
               </div>
+
+              {currentReleaseNotes ? (
+                <div className="space-y-3">
+                  <div className="surface-subtle rounded-2xl border border-[color:var(--surface-border)] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      Release Notes
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">
+                      v{currentReleaseNotes.version} · {currentReleaseNotes.title}
+                    </p>
+                    <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                      {currentReleaseNotes.highlights.map((highlight) => (
+                        <li key={highlight} className="leading-relaxed">
+                          • {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="space-y-3">
                 <div className="surface-subtle rounded-2xl border border-[color:var(--surface-border)] p-4">

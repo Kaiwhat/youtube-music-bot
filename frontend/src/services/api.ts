@@ -1,4 +1,4 @@
-import type { ApiResponse, Track } from "@/types";
+import type { AlbumDetails, ApiResponse, PlaybackState, Track } from "@/types";
 import type {
   SyncDeviceMetadata,
   SyncProfileResponse,
@@ -253,12 +253,16 @@ class ApiService {
   }
 
   // 取得當前狀態
-  async getState(): Promise<ApiResponse<any>> {
-    return this.request<any>("/state");
+  async getState(): Promise<ApiResponse<PlaybackState>> {
+    return this.request<PlaybackState>("/state");
   }
 
   async getSystemInfo(): Promise<ApiResponse<SystemInfoResponse>> {
     return this.request<SystemInfoResponse>("/system/info");
+  }
+
+  async getAlbum(albumId: string): Promise<ApiResponse<AlbumDetails>> {
+    return this.request<AlbumDetails>(`/albums/${encodeURIComponent(albumId)}`);
   }
 }
 

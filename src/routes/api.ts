@@ -774,6 +774,53 @@ api.get("/system/info", (c) =>
 );
 
 /**
+ * GET /api/albums/:albumId
+ * 取得專輯與曲目資訊
+ */
+api.get("/albums/:albumId", async (c) => {
+  const albumId = normalizeText(c.req.param("albumId"));
+
+  if (!albumId) {
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: "albumId is required",
+      },
+      400,
+    );
+  }
+
+  try {
+    const musicService = getMusicService();
+    const album = await musicService.getAlbum(albumId);
+
+    if (!album) {
+      return c.json<ApiResponse>(
+        {
+          success: false,
+          error: "Album not found",
+        },
+        404,
+      );
+    }
+
+    return c.json<ApiResponse>({
+      success: true,
+      data: album,
+    });
+  } catch (error) {
+    console.error("Failed to get album:", error);
+    return c.json<ApiResponse>(
+      {
+        success: false,
+        error: "Failed to get album",
+      },
+      500,
+    );
+  }
+});
+
+/**
  * GET /api/state
  * 取得目前播放狀態
  */
