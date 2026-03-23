@@ -89,7 +89,6 @@ export const useWebSocket = () => {
               isPlaying: true,
             });
           }
-          clearLoadingIfTrackMatches(message.track.videoId);
           break;
 
         case "now_playing":
@@ -108,7 +107,9 @@ export const useWebSocket = () => {
 
         case "playback_progress":
           updatePlaybackProgress(message.progress);
-          clearLoadingIfTrackMatches(message.progress.trackId);
+          if (message.progress.position > 0) {
+            clearLoadingIfTrackMatches(message.progress.trackId);
+          }
           break;
 
         case "play_error":

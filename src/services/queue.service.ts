@@ -449,11 +449,17 @@ class QueueService {
       return;
     }
 
-    // 從佇列取出下一首
-    if (this.currentTrack) {
-      this.lastPlayedTrack = this.currentTrack;
-      this.rememberRecentlyPlayed(this.currentTrack.videoId);
+    const outgoingTrack = this.currentTrack;
+
+    // 手動切歌時要先停止舊播放器，再切換 currentTrack，
+    // 否則舊歌在串流解析期間送出的 time-pos 會被誤標成新歌進度。
+    if (outgoingTrack) {
+      this.lastPlayedTrack = outgoingTrack;
+      this.rememberRecentlyPlayed(outgoingTrack.videoId);
+      getPlayerService().stop();
     }
+
+    // 從佇列取出下一首
     const nextTrack = this.queue.shift()!;
     this.currentTrack = nextTrack;
     this.currentPosition = 0;

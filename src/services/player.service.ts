@@ -129,9 +129,16 @@ class PlayerService {
       const attemptConnect = () => {
         log.debug("Attempting IPC connection", { path: this.ipcPath });
 
-        this.ipcSocket = connect(this.ipcPath!);
+        const socket = connect(this.ipcPath!);
+        this.ipcSocket = socket;
 
-        this.ipcSocket.on("connect", () => {
+        socket.on("connect", () => {
+          if (this.ipcSocket !== socket) {
+            log.debug("Ignoring stale IPC socket connection");
+            socket.destroy();
+            return;
+          }
+
           log.info("IPC socket connected");
           this.ipcConnectRetries = 0;
 
@@ -145,11 +152,21 @@ class PlayerService {
           resolve();
         });
 
-        this.ipcSocket.on("data", (data: Buffer) => {
+        socket.on("data", (data: Buffer) => {
+          if (this.ipcSocket !== socket) {
+            log.debug("Ignoring stale IPC socket payload");
+            return;
+          }
+
           this.handleIpcMessage(data.toString());
         });
 
-        this.ipcSocket.on("error", (err: Error) => {
+        socket.on("error", (err: Error) => {
+          if (this.ipcSocket !== socket) {
+            log.debug("Ignoring stale IPC socket error", { error: err.message });
+            return;
+          }
+
           log.debug("IPC socket error", { error: err.message });
 
           const maxRetries =
@@ -173,7 +190,11 @@ class PlayerService {
           }
         });
 
-        this.ipcSocket.on("close", () => {
+        socket.on("close", () => {
+          if (this.ipcSocket !== socket) {
+            return;
+          }
+
           log.debug("IPC socket closed");
           this.ipcSocket = null;
         });
@@ -246,7 +267,7 @@ class PlayerService {
     switch (message.name) {
       case "time-pos":
         event.timePos = message.data as number;
-        if (typeof message.data === "number" && message.data >= 0) {
+        if (typeof message.data === "number" && message.data > 0) {
           this.confirmPlaybackStarted();
         }
         break;

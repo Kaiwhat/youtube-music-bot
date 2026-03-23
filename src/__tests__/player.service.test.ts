@@ -166,7 +166,7 @@ describe("PlayerService - seek functionality", () => {
   });
 
   describe("playback confirmation", () => {
-    test("should confirm playback when time-pos is observed", () => {
+    test("should wait for a positive time-pos before confirming playback", () => {
       const fakeProcess = {} as ChildProcess;
       const player = playerService as unknown as {
         beginPlaybackConfirmation: (
@@ -188,6 +188,7 @@ describe("PlayerService - seek functionality", () => {
         handleError,
       );
       player.handlePropertyChange({ name: "time-pos", data: 0 });
+      player.handlePropertyChange({ name: "time-pos", data: 0.25 });
 
       expect(handleSuccess).toHaveBeenCalledTimes(1);
       expect(handleError).not.toHaveBeenCalled();

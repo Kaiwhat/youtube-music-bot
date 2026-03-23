@@ -85,12 +85,16 @@ describe("QueueService radio mode", () => {
     const trackLoadingEvents: Array<{ track: Track | null; message?: string }> = [];
     const playUrlCalls: string[] = [];
     const mixSeeds: string[] = [];
+    let stopCalls = 0;
 
     queueService.onTrackLoading((payload) => {
       trackLoadingEvents.push(payload);
     });
 
     stubMethod(playerService, "isCurrentlyPlaying", () => false);
+    stubMethod(playerService, "stop", () => {
+      stopCalls++;
+    });
     stubMethod(playerService, "play", async () => {
       throw new Error("play() should not be used when playUrl() succeeds");
     });
@@ -120,6 +124,7 @@ describe("QueueService radio mode", () => {
       "https://stream/base-track",
       "https://stream/radio-1",
     ]);
+    expect(stopCalls).toBe(1);
     expect(mixSeeds[0]).toBe(baseTrack.videoId);
     expect(state.radioEnabled).toBe(true);
     expect(state.lastPlayedTrack?.videoId).toBe("base-track");
