@@ -732,17 +732,14 @@ function TrackSupportPanel({ item }: { item: DiscoverTrackItem }) {
 
 function TopRequestedStatsStrip({
   meta,
+  className,
 }: {
   meta: DiscoverTrackRankingMeta;
+  className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        DISCOVER_PANEL_CLASS,
-        "grid min-h-[4.75rem] grid-cols-2 gap-3",
-      )}
-    >
-      <div className="min-w-0">
+    <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+      <div className={cn(DISCOVER_PANEL_CLASS, "min-w-0 px-4 py-3")}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
           點播次數
         </p>
@@ -750,7 +747,7 @@ function TopRequestedStatsStrip({
           已點播 {meta.requestCount} 次
         </p>
       </div>
-      <div className="min-w-0">
+      <div className={cn(DISCOVER_PANEL_CLASS, "min-w-0 px-4 py-3")}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
           最後更新
         </p>
@@ -1279,6 +1276,370 @@ function DiscoverSectionRail({
   );
 }
 
+function createTopRequestedTrackItem(
+  entry: TopRequestedEntry,
+): DiscoverTrackItem {
+  return {
+    kind: "track",
+    id: entry.track.videoId,
+    title: entry.track.title,
+    artist: entry.track.artist,
+    thumbnail: entry.track.thumbnail,
+    duration: entry.track.duration,
+    presentation: "song",
+    track: entry.track,
+  };
+}
+
+function createTopRequestedMeta(
+  entry: TopRequestedEntry,
+): DiscoverTrackRankingMeta {
+  return {
+    rank: entry.rank,
+    requestCount: entry.requestCount,
+    lastRequestedAt: entry.lastRequestedAt,
+  };
+}
+
+function TopRequestedSpotlight({
+  entry,
+  onQueueTrack,
+  onCreateMix,
+  onToggleFavorite,
+  isPending,
+  isCreatingMix,
+  isFavorite,
+  favoriteDisabled,
+}: {
+  entry: TopRequestedEntry;
+  onQueueTrack: (track: Track) => Promise<void>;
+  onCreateMix: (track: Track) => Promise<void>;
+  onToggleFavorite: (track: Track) => Promise<void>;
+  isPending: boolean;
+  isCreatingMix: boolean;
+  isFavorite: boolean;
+  favoriteDisabled: boolean;
+}) {
+  const openAlbum = useAlbumDialogStore((state) => state.openAlbum);
+  const openArtist = useArtistDialogStore((state) => state.openArtist);
+  const item = createTopRequestedTrackItem(entry);
+  const meta = createTopRequestedMeta(entry);
+  const destination = getTrackDestination(item, openAlbum, openArtist);
+  const duration = getTrackDuration(item);
+
+  return (
+    <Card className="surface-card-strong overflow-hidden rounded-[32px] border p-0">
+      <div className="grid gap-0 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)]">
+        <button
+          type="button"
+          onClick={() => destination.onOpen?.()}
+          disabled={!destination.onOpen}
+          className={cn(
+            "group relative block min-h-[300px] text-left lg:min-h-full",
+            destination.onOpen ? "cursor-pointer" : "cursor-default",
+          )}
+        >
+          <div className="relative h-full overflow-hidden bg-[var(--surface-subtle)]">
+            <DiscoverArtwork
+              src={item.thumbnail || item.track.thumbnail}
+              alt={item.title}
+              preferredQuality={ThumbnailQuality.MAXRES}
+              className={cn(
+                "h-full min-h-[300px] transition-transform duration-500 lg:min-h-[360px]",
+                destination.onOpen && "group-hover:scale-[1.03]",
+              )}
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(9,14,24,0.08)_0%,_rgba(9,14,24,0.24)_34%,_rgba(9,14,24,0.9)_100%)]" />
+
+            <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 lg:p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex h-12 min-w-12 items-center justify-center rounded-[20px] border border-white/16 bg-white/14 px-3 text-base font-semibold text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.66)] backdrop-blur-sm">
+                  #{meta.rank}
+                </span>
+                <InfoPill tone="inverse">本站冠軍</InfoPill>
+              </div>
+              <InfoPill tone="inverse">{formatTime(duration)}</InfoPill>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 p-4 lg:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/74">
+                Top Requested
+              </p>
+              <h3 className="mt-2 line-clamp-2 text-[1.7rem] font-semibold leading-tight tracking-tight text-white lg:text-[2rem]">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-base text-white/82">{item.artist}</p>
+              {destination.label ? (
+                <span className="mt-4 inline-flex items-center gap-1 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/92 backdrop-blur-sm">
+                  {destination.label}
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </button>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 lg:p-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--dynamic-ring)] bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+              Top Requested
+            </span>
+            <InfoPill>第一名焦點</InfoPill>
+            <InfoPill>長度 {formatTime(duration)}</InfoPill>
+          </div>
+
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <h3 className="text-[1.55rem] font-semibold leading-tight tracking-tight text-[var(--text-primary)] lg:text-[1.85rem]">
+                {item.title}
+              </h3>
+              <p className="text-base text-[var(--text-secondary)] lg:text-lg">
+                {item.artist}
+              </p>
+            </div>
+            <p className="max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
+              目前站內主動點播數最高的歌曲。適合直接接續播放，也很適合作為下一輪自動 Mix 的起點。
+            </p>
+          </div>
+
+          <TopRequestedStatsStrip meta={meta} />
+
+          <div className="flex flex-wrap gap-2">
+            {item.track.album ? (
+              <OpenAlbumButton
+                album={item.track.album}
+                trackTitle={item.track.title}
+                className={DISCOVER_CHIP_BUTTON_CLASS}
+                labelClassName={DISCOVER_CHIP_LABEL_CLASS}
+              />
+            ) : null}
+            <OpenArtistButton
+              artistId={item.artistId || item.track.artistId}
+              artistName={item.artist}
+              className={DISCOVER_CHIP_BUTTON_CLASS}
+              labelClassName={DISCOVER_CHIP_LABEL_CLASS}
+            />
+          </div>
+
+          {destination.label ? (
+            <button
+              type="button"
+              onClick={() => destination.onOpen?.()}
+              className="inline-flex w-fit items-center gap-1 rounded-full border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+            >
+              {destination.label}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+
+          <div className="mt-auto grid gap-2 border-t border-[color:var(--surface-border)]/70 pt-5 sm:grid-cols-3">
+            <Button
+              type="button"
+              onClick={() => {
+                void onQueueTrack(item.track);
+              }}
+              disabled={isPending || isCreatingMix}
+              className="h-11 rounded-[18px]"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  加入中
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-4 w-4" />
+                  加入佇列
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void onCreateMix(item.track);
+              }}
+              disabled={isPending || isCreatingMix}
+              className="h-11 rounded-[18px]"
+            >
+              {isCreatingMix ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  建立中
+                </>
+              ) : (
+                <>
+                  <Radio className="h-4 w-4" />
+                  建立 Mix
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant={isFavorite ? "default" : "outline"}
+              onClick={() => {
+                void onToggleFavorite(item.track);
+              }}
+              disabled={favoriteDisabled}
+              className="h-11 rounded-[18px]"
+            >
+              <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+              {isFavorite ? "已收藏" : "收藏"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function TopRequestedListRow({
+  entry,
+  onQueueTrack,
+  onCreateMix,
+  onToggleFavorite,
+  isPending,
+  isCreatingMix,
+  isFavorite,
+  favoriteDisabled,
+}: {
+  entry: TopRequestedEntry;
+  onQueueTrack: (track: Track) => Promise<void>;
+  onCreateMix: (track: Track) => Promise<void>;
+  onToggleFavorite: (track: Track) => Promise<void>;
+  isPending: boolean;
+  isCreatingMix: boolean;
+  isFavorite: boolean;
+  favoriteDisabled: boolean;
+}) {
+  const openAlbum = useAlbumDialogStore((state) => state.openAlbum);
+  const openArtist = useArtistDialogStore((state) => state.openArtist);
+  const item = createTopRequestedTrackItem(entry);
+  const meta = createTopRequestedMeta(entry);
+  const destination = getTrackDestination(item, openAlbum, openArtist);
+  const duration = getTrackDuration(item);
+
+  return (
+    <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface-elevated)]/74 p-3 transition-colors hover:bg-[color:var(--surface-elevated)]">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-[4.75rem] w-[4.75rem] shrink-0 flex-col items-center justify-center rounded-[22px] border border-[color:var(--surface-border)] bg-[var(--surface-subtle)] text-center">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              排名
+            </span>
+            <span className="mt-1 text-[1.35rem] font-semibold leading-none text-[var(--text-primary)]">
+              {meta.rank}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => destination.onOpen?.()}
+            disabled={!destination.onOpen}
+            className={cn(
+              "group flex min-w-0 flex-1 items-center gap-3 text-left",
+              destination.onOpen ? "cursor-pointer" : "cursor-default",
+            )}
+          >
+            <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-[20px] border border-[color:var(--surface-border)] bg-[var(--surface-subtle)]">
+              <DiscoverArtwork
+                src={item.thumbnail || item.track.thumbnail}
+                alt={item.title}
+                preferredQuality={ThumbnailQuality.HIGH}
+                className={cn(
+                  "transition-transform duration-500",
+                  destination.onOpen && "group-hover:scale-[1.04]",
+                )}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-base font-semibold text-[var(--text-primary)]">
+                  {item.title}
+                </p>
+                <InfoPill className="px-2.5 py-1 text-[10px]">
+                  {formatTime(duration)}
+                </InfoPill>
+              </div>
+              <p className="mt-1 truncate text-sm text-[var(--text-secondary)]">
+                {item.artist}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-muted)]">
+                <span>已點播 {meta.requestCount} 次</span>
+                <span className="h-1 w-1 rounded-full bg-[var(--surface-border)]" />
+                <span>{formatLastRequestedAt(meta.lastRequestedAt)}</span>
+                {destination.label ? (
+                  <>
+                    <span className="h-1 w-1 rounded-full bg-[var(--surface-border)]" />
+                    <span className="inline-flex items-center gap-1">
+                      {destination.label}
+                      <ArrowUpRight className="h-3 w-3" />
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              void onQueueTrack(item.track);
+            }}
+            disabled={isPending || isCreatingMix}
+            className="rounded-xl px-3"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <PlayCircle className="h-4 w-4" />
+            )}
+            {isPending ? "加入中" : "加入"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void onCreateMix(item.track);
+            }}
+            disabled={isPending || isCreatingMix}
+            className="h-9 w-9 rounded-xl px-0"
+            title="建立 Mix"
+          >
+            {isCreatingMix ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Radio className="h-4 w-4" />
+            )}
+            <span className="sr-only">建立 Mix</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={isFavorite ? "default" : "outline"}
+            onClick={() => {
+              void onToggleFavorite(item.track);
+            }}
+            disabled={favoriteDisabled}
+            className="h-9 w-9 rounded-xl px-0"
+            title={isFavorite ? "移除收藏" : "加入收藏"}
+          >
+            <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+            <span className="sr-only">
+              {isFavorite ? "移除收藏" : "加入收藏"}
+            </span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TopRequestedRail({
   entries,
   onQueueTrack,
@@ -1288,6 +1649,7 @@ function TopRequestedRail({
   creatingMixId,
   favoriteTrackIds,
   libraryReady,
+  isMobile = false,
 }: {
   entries: TopRequestedEntry[];
   onQueueTrack: (track: Track) => Promise<void>;
@@ -1297,6 +1659,7 @@ function TopRequestedRail({
   creatingMixId: string | null;
   favoriteTrackIds: ReadonlySet<string>;
   libraryReady: boolean;
+  isMobile?: boolean;
 }) {
   if (entries.length === 0) {
     return (
@@ -1309,36 +1672,59 @@ function TopRequestedRail({
     );
   }
 
+  const [leadEntry, ...remainingEntries] = entries;
+  const visibleEntries = remainingEntries.slice(0, isMobile ? 4 : 6);
+
+  if (!leadEntry) {
+    return null;
+  }
+
   return (
-    <DiscoverHorizontalRail>
-      {entries.map((entry) => (
-        <TrackDiscoverCard
-          key={entry.track.videoId}
-          item={{
-            kind: "track",
-            id: entry.track.videoId,
-            title: entry.track.title,
-            artist: entry.track.artist,
-            thumbnail: entry.track.thumbnail,
-            duration: entry.track.duration,
-            presentation: "song",
-            track: entry.track,
-          }}
-          onQueueTrack={onQueueTrack}
-          onCreateMix={onCreateMix}
-          onToggleFavorite={onToggleFavorite}
-          isPending={pendingTrackId === entry.track.videoId}
-          isCreatingMix={creatingMixId === entry.track.videoId}
-          isFavorite={favoriteTrackIds.has(entry.track.videoId)}
-          favoriteDisabled={!libraryReady}
-          rankingMeta={{
-            rank: entry.rank,
-            requestCount: entry.requestCount,
-            lastRequestedAt: entry.lastRequestedAt,
-          }}
-        />
-      ))}
-    </DiscoverHorizontalRail>
+    <div className="space-y-4 xl:space-y-5">
+      <TopRequestedSpotlight
+        entry={leadEntry}
+        onQueueTrack={onQueueTrack}
+        onCreateMix={onCreateMix}
+        onToggleFavorite={onToggleFavorite}
+        isPending={pendingTrackId === leadEntry.track.videoId}
+        isCreatingMix={creatingMixId === leadEntry.track.videoId}
+        isFavorite={favoriteTrackIds.has(leadEntry.track.videoId)}
+        favoriteDisabled={!libraryReady}
+      />
+
+      {visibleEntries.length > 0 ? (
+        <Card className="surface-card overflow-hidden rounded-[28px] border p-4 lg:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                後續名次
+              </p>
+              <h3 className="mt-1 text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                緊接在後的熱門點播
+              </h3>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)]">
+              依站內主動點播次數持續更新
+            </p>
+          </div>
+          <div className="space-y-2.5">
+            {visibleEntries.map((entry) => (
+              <TopRequestedListRow
+                key={entry.track.videoId}
+                entry={entry}
+                onQueueTrack={onQueueTrack}
+                onCreateMix={onCreateMix}
+                onToggleFavorite={onToggleFavorite}
+                isPending={pendingTrackId === entry.track.videoId}
+                isCreatingMix={creatingMixId === entry.track.videoId}
+                isFavorite={favoriteTrackIds.has(entry.track.videoId)}
+                favoriteDisabled={!libraryReady}
+              />
+            ))}
+          </div>
+        </Card>
+      ) : null}
+    </div>
   );
 }
 
@@ -1533,7 +1919,7 @@ export const DiscoverView = ({ isMobile = false }: DiscoverViewProps) => {
             <SectionHeading
               icon={<Music2 className="h-4 w-4" />}
               title="本站熱門點播"
-              subtitle="只統計使用者主動加入的歌曲，方便快速看到目前站內最常被點播的內容。"
+              subtitle="用冠軍焦點卡搭配連續名次列，快速看到站內最常被主動加入的歌曲。"
             />
             <TopRequestedRail
               entries={topRequested}
@@ -1544,6 +1930,7 @@ export const DiscoverView = ({ isMobile = false }: DiscoverViewProps) => {
               creatingMixId={creatingMixId}
               favoriteTrackIds={favoriteTrackIds}
               libraryReady={libraryReady}
+              isMobile={isMobile}
             />
           </section>
 

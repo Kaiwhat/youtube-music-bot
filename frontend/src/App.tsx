@@ -78,6 +78,7 @@ function AppContent() {
                 <PlayerSection
                   sidebarMode
                   idleVariant="sidebar"
+                  idleContext="library"
                   onSearchClick={handleSearchOpen}
                 />
               </div>
@@ -91,6 +92,7 @@ function AppContent() {
                 <PlayerSection
                   sidebarMode
                   idleVariant="sidebar"
+                  idleContext="discover"
                   onSearchClick={handleSearchOpen}
                 />
               </div>
@@ -100,13 +102,20 @@ function AppContent() {
             </div>
           ) : isDesktopIdle ? (
             <div className="mx-auto flex h-full w-full max-w-[1180px] min-h-0 items-center justify-center">
-              <PlayerSection idleVariant="hero" onSearchClick={handleSearchOpen} />
+              <PlayerSection
+                idleVariant="hero"
+                idleContext="default"
+                onSearchClick={handleSearchOpen}
+              />
             </div>
           ) : (
             <>
               {/* 左側：播放器 */}
               <div className="flex min-h-0 flex-col gap-4 xl:gap-6">
-                <PlayerSection onSearchClick={handleSearchOpen} />
+                <PlayerSection
+                  idleContext="default"
+                  onSearchClick={handleSearchOpen}
+                />
               </div>
 
               {/* 右側：標籤切換（歌詞/播放佇列） */}
