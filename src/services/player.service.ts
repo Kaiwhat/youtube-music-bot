@@ -30,6 +30,7 @@ type PlayerSession = {
   source: SessionSource;
   volumeMultiplier: number;
   targetVolume: number;
+  duration: number | null;
   process: ChildProcess;
   ipcSocket: Socket | null;
   ipcPath: string;
@@ -556,6 +557,15 @@ class PlayerService {
     session: PlayerSession,
     message: { name: string; data: number | boolean },
   ): void {
+    if (
+      message.name === "duration" &&
+      typeof message.data === "number" &&
+      Number.isFinite(message.data) &&
+      message.data >= 0
+    ) {
+      session.duration = message.data;
+    }
+
     if (message.name === "time-pos") {
       if (
         session.confirmation?.mode === "playback" &&
@@ -666,6 +676,7 @@ class PlayerService {
       source: options.source,
       volumeMultiplier: this.normalizeVolumeMultiplier(options.volumeMultiplier),
       targetVolume: 0,
+      duration: null,
       process: null as unknown as ChildProcess,
       ipcSocket: null,
       ipcPath: this.getIpcPath(sessionId),
@@ -1340,6 +1351,10 @@ class PlayerService {
 
   getVolume(): number {
     return this.currentVolume;
+  }
+
+  getActiveDuration(): number | null {
+    return this.activeSession?.duration ?? null;
   }
 
   isCurrentlyPlaying(): boolean {

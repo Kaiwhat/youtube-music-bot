@@ -116,6 +116,140 @@ describe("QueueService - seekTo functionality", () => {
       // Position should be clamped to duration (which is 0 by default)
       expect(state.position).toBeLessThanOrEqual(state.duration);
     });
+
+    test("should not clamp seek requests to zero when duration is unknown", () => {
+      const seekSpy = mock((_position: number) => {});
+      const playerService = getPlayerService();
+      const internalQueueService = queueService as unknown as {
+        currentTrack: Track | null;
+        currentDuration: number;
+      };
+
+      stubMethod(playerService, "seek", seekSpy as typeof playerService.seek);
+      internalQueueService.currentTrack = {
+        ...track("track-unknown", "Unknown Duration Track"),
+        duration: 0,
+      };
+      internalQueueService.currentDuration = 0;
+
+      queueService.seekTo(42);
+
+      expect(seekSpy).toHaveBeenCalledWith(42);
+      expect(queueService.getState().position).toBe(42);
+    });
+  });
+
+  describe("preloaded duration recovery", () => {
+    test("should restore duration from the promoted preloaded session", async () => {
+      const nextTrack = {
+        ...track("next-track", "Next Track"),
+        duration: 0,
+      };
+      const playerService = getPlayerService();
+      const internalQueueService = queueService as unknown as {
+        queue: Track[];
+        currentTrack: Track | null;
+        syncNextTrackPreload: (options?: { force?: boolean }) => Promise<boolean>;
+        fetchAndBroadcastLyrics: () => void;
+        maybeHydrateRadioQueue: () => void;
+      };
+
+      stubMethod(
+        playerService,
+        "isTrackPreloaded",
+        (() => true) as typeof playerService.isTrackPreloaded,
+      );
+      stubMethod(
+        playerService,
+        "playPreloaded",
+        (async () => true) as typeof playerService.playPreloaded,
+      );
+      stubMethod(
+        playerService,
+        "getActiveDuration",
+        (() => 215) as typeof playerService.getActiveDuration,
+      );
+      stubMethod(
+        internalQueueService,
+        "syncNextTrackPreload",
+        (async () => false) as typeof internalQueueService.syncNextTrackPreload,
+      );
+      stubMethod(
+        internalQueueService,
+        "fetchAndBroadcastLyrics",
+        (() => {}) as typeof internalQueueService.fetchAndBroadcastLyrics,
+      );
+      stubMethod(
+        internalQueueService,
+        "maybeHydrateRadioQueue",
+        (() => {}) as typeof internalQueueService.maybeHydrateRadioQueue,
+      );
+
+      internalQueueService.currentTrack = null;
+      internalQueueService.queue = [nextTrack];
+
+      await queueService.playNext();
+
+      expect(queueService.getState().currentTrack?.videoId).toBe(nextTrack.videoId);
+      expect(queueService.getState().duration).toBe(215);
+    });
+
+    test("should restore duration from the promoted session during crossfade", async () => {
+      const currentTrack = track("current-track", "Current Track");
+      const nextTrack = {
+        ...track("next-track", "Next Track"),
+        duration: 0,
+      };
+      const playerService = getPlayerService();
+      const internalQueueService = queueService as unknown as {
+        queue: Track[];
+        currentTrack: Track | null;
+        preloadPromise: Promise<boolean> | null;
+        preloadTrackId: string | null;
+        crossfadeStartedForTrackId: string | null;
+        syncNextTrackPreload: (options?: { force?: boolean }) => Promise<boolean>;
+        fetchAndBroadcastLyrics: () => void;
+        maybeHydrateRadioQueue: () => void;
+        startCrossfadeToNextTrack: (track: Track) => Promise<void>;
+      };
+
+      stubMethod(
+        playerService,
+        "crossfadeToPreloaded",
+        (async () => true) as typeof playerService.crossfadeToPreloaded,
+      );
+      stubMethod(
+        playerService,
+        "getActiveDuration",
+        (() => 215) as typeof playerService.getActiveDuration,
+      );
+      stubMethod(
+        internalQueueService,
+        "syncNextTrackPreload",
+        (async () => false) as typeof internalQueueService.syncNextTrackPreload,
+      );
+      stubMethod(
+        internalQueueService,
+        "fetchAndBroadcastLyrics",
+        (() => {}) as typeof internalQueueService.fetchAndBroadcastLyrics,
+      );
+      stubMethod(
+        internalQueueService,
+        "maybeHydrateRadioQueue",
+        (() => {}) as typeof internalQueueService.maybeHydrateRadioQueue,
+      );
+
+      internalQueueService.currentTrack = currentTrack;
+      internalQueueService.queue = [nextTrack];
+      internalQueueService.preloadPromise = null;
+      internalQueueService.preloadTrackId = nextTrack.videoId;
+      internalQueueService.crossfadeStartedForTrackId = currentTrack.videoId;
+
+      await internalQueueService.startCrossfadeToNextTrack(nextTrack);
+
+      expect(queueService.getState().currentTrack?.videoId).toBe(nextTrack.videoId);
+      expect(queueService.getState().duration).toBe(215);
+    });
   });
 
   describe("volume control", () => {

@@ -275,6 +275,21 @@ class QueueService {
     }
   }
 
+  private syncCurrentDurationFromPlayer(): boolean {
+    const activeDuration = getPlayerService().getActiveDuration();
+    if (
+      typeof activeDuration !== "number" ||
+      !Number.isFinite(activeDuration) ||
+      activeDuration <= 0 ||
+      this.currentDuration === activeDuration
+    ) {
+      return false;
+    }
+
+    this.currentDuration = activeDuration;
+    return true;
+  }
+
   /**
    * 加入歌曲到播放清單
    */
@@ -533,6 +548,10 @@ class QueueService {
     this.currentDuration = nextTrack.duration;
     this.isPaused = false;
 
+    if (activatedPreloaded) {
+      this.syncCurrentDurationFromPlayer();
+    }
+
     log.info("Playing next track", { title: nextTrack.title });
 
     // 廣播變更
@@ -569,9 +588,14 @@ class QueueService {
         trackId: nextTrack.videoId,
         volumeMultiplier,
       });
+      const didSyncDuration = this.syncCurrentDurationFromPlayer();
       log.info("Playback started successfully via direct stream URL", {
         source: streamResult.source,
       });
+      if (didSyncDuration) {
+        this.broadcastState();
+        this.broadcastProgress({ force: true });
+      }
       this.broadcastTrackReady(nextTrack);
       void this.syncNextTrackPreload({ force: true });
     } catch (playError) {
@@ -588,7 +612,12 @@ class QueueService {
         await player.play(nextTrack.videoId, {
           volumeMultiplier,
         });
+        const didSyncDuration = this.syncCurrentDurationFromPlayer();
         log.info("Fallback playback started successfully via YouTube URL");
+        if (didSyncDuration) {
+          this.broadcastState();
+          this.broadcastProgress({ force: true });
+        }
         this.broadcastTrackReady(nextTrack);
         void this.syncNextTrackPreload({ force: true });
       } catch (fallbackError) {
@@ -762,7 +791,10 @@ class QueueService {
     }
 
     // 限制在當前歌曲的 duration 範圍內
-    const clampedPosition = Math.min(position, this.currentDuration);
+    const clampedPosition =
+      Number.isFinite(this.currentDuration) && this.currentDuration > 0
+        ? Math.min(position, this.currentDuration)
+        : position;
 
     log.debug("Seeking to position", { position: clampedPosition });
     this.currentPosition = clampedPosition;
@@ -1155,6 +1187,7 @@ class QueueService {
     this.currentDuration = nextTrack.duration;
     this.isPaused = false;
     this.crossfadeStartedForTrackId = null;
+    this.syncCurrentDurationFromPlayer();
 
     this.broadcastQueueChange();
     this.broadcastState();

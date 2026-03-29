@@ -45,6 +45,7 @@ type TestSession = {
   source: { type: "stream"; value: string };
   volumeMultiplier: number;
   targetVolume: number;
+  duration: number | null;
   process: ChildProcess;
   ipcSocket: null;
   ipcPath: string;
@@ -62,6 +63,7 @@ function createSession(process: ChildProcess): TestSession {
     source: { type: "stream" as const, value: "https://example.com/audio" },
     volumeMultiplier: 1,
     targetVolume: 70,
+    duration: null,
     process,
     ipcSocket: null,
     ipcPath: "/tmp/test-mpv.sock",
@@ -422,6 +424,44 @@ describe("PlayerService - seek functionality", () => {
       expect(settle).toHaveBeenCalledTimes(1);
       expect(settle).toHaveBeenCalledWith(true);
       expect(reject).not.toHaveBeenCalled();
+      expect(session.duration).toBe(215);
+    });
+
+    test("should retain a preloaded session duration after promotion", async () => {
+      const outgoing = createSession({
+        kill: mock(() => true),
+      } as unknown as ChildProcess);
+      const standby = {
+        ...createSession({
+          kill: mock(() => true),
+        } as unknown as ChildProcess),
+        id: 2,
+        purpose: "standby" as const,
+        trackId: "track-2",
+      };
+      const player = playerService as unknown as {
+        activeSession: typeof outgoing | null;
+        standbySession: typeof standby | null;
+        handlePropertyChange: (
+          session: typeof standby,
+          message: {
+            name: string;
+            data: number | boolean;
+          },
+        ) => void;
+      };
+
+      player.activeSession = outgoing;
+      player.standbySession = standby;
+      player.handlePropertyChange(standby, {
+        name: "duration",
+        data: 215,
+      });
+
+      const promoted = await playerService.playPreloaded("track-2");
+
+      expect(promoted).toBe(true);
+      expect(playerService.getActiveDuration()).toBe(215);
     });
 
     test("should clear playback state when session startup fails", async () => {
