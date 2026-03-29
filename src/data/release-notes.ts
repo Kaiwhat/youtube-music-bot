@@ -3,11 +3,11 @@ import type { ReleaseNotesEntry } from "../types/index.ts";
 const fallbackReleaseNotesByVersion: Record<string, ReleaseNotesEntry> = {
   "0.7.7": {
     version: "0.7.7",
-    title: "音量播放修正",
+    title: "音量播放與 Discover 修正",
     publishedAt: "2026-03-29",
     status: "preview",
     summary:
-      "修正切歌偶發靜音，並重新校準音量平衡對 YouTube loudness metadata 的換算與同步時機。",
+      "修正切歌偶發靜音、重新校準音量平衡換算，並補正 Discover 本站排名歌曲長度偶發顯示 0:00 的問題。",
     sections: [
       {
         category: "fixed",
@@ -31,6 +31,14 @@ const fallbackReleaseNotesByVersion: Record<string, ReleaseNotesEntry> = {
         description: "把這次修正轉成可重複驗證的測試，降低再次發生的機率。",
         items: [
           "補上播放器音量同步與版本說明的 regression tests，降低後續再發機率。",
+        ],
+      },
+      {
+        category: "fixed",
+        title: "Discover 排行資料補正",
+        description: "避免本站排名沿用錯誤的歌曲 metadata，造成時長顯示異常。",
+        items: [
+          "修正本站排名歌曲長度被 0 覆蓋後持續顯示 0:00 的問題，並在榜單讀取時自動回填缺失 metadata。",
         ],
       },
     ],
