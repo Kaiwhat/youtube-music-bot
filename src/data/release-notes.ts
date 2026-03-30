@@ -1,6 +1,33 @@
 import type { ReleaseNotesEntry } from "../types/index.ts";
 
 const fallbackReleaseNotesByVersion: Record<string, ReleaseNotesEntry> = {
+  "0.7.8": {
+    version: "0.7.8",
+    title: "音量平衡過度放大修正",
+    publishedAt: "2026-03-30",
+    status: "preview",
+    summary:
+      "修正音量平衡會把偏安靜歌曲額外放大的問題，讓官方 MV 與一般音軌之間的聽感音量更穩定一致。",
+    sections: [
+      {
+        category: "fixed",
+        title: "音量平衡修復",
+        description: "避免 normalization 在遇到較安靜的歌曲時反而把它額外放大。",
+        items: [
+          "修正音量平衡只會衰減偏 loud 的曲目，不再因 YouTube loudness metadata 把較安靜的官方 MV 額外放大。",
+          "保留過大曲目的 attenuation cap，讓音量平衡開啟時仍能壓低像 How Sweet 這類本來偏 loud 的歌曲。",
+        ],
+      },
+      {
+        category: "fixed",
+        title: "回歸驗證補強",
+        description: "把這次真實 metadata case 轉成測試，避免 quiet track boost regression 再次出現。",
+        items: [
+          "補上 ROSÉ 官方 MV 與 loudness fallback 的 regression tests，確認安靜曲目維持 1x、偏 loud 曲目仍會被衰減。",
+        ],
+      },
+    ],
+  },
   "0.7.7": {
     version: "0.7.7",
     title: "音量播放與 Discover 修正",

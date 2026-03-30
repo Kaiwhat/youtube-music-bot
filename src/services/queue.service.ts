@@ -39,7 +39,7 @@ const MIN_CROSSFADE_START_POSITION_SECONDS = 5;
 const CROSSFADE_START_TOLERANCE_SECONDS = 0.35;
 const MAX_CROSSFADE_TRIGGER_LEAD_SECONDS = 1;
 const VOLUME_NORMALIZATION_REFERENCE_DB = -14;
-const MAX_VOLUME_NORMALIZATION_BOOST_DB = 6;
+const MAX_VOLUME_NORMALIZATION_GAIN_DB = 0;
 const MAX_VOLUME_NORMALIZATION_ATTENUATION_DB = 12;
 
 class QueueService {
@@ -1526,16 +1526,17 @@ function resolveNormalizationGainDb(
 
   const loudnessDb = loudnessInfo?.loudnessDb;
   if (typeof loudnessDb === "number" && Number.isFinite(loudnessDb)) {
-    return clampNormalizationGainDb(-Math.abs(loudnessDb));
+    return clampNormalizationGainDb(-loudnessDb);
   }
 
   return 0;
 }
 
+// Volume normalization only attenuates louder tracks and never boosts quieter ones.
 function clampNormalizationGainDb(gainDb: number): number {
   return Math.max(
     -MAX_VOLUME_NORMALIZATION_ATTENUATION_DB,
-    Math.min(MAX_VOLUME_NORMALIZATION_BOOST_DB, gainDb),
+    Math.min(MAX_VOLUME_NORMALIZATION_GAIN_DB, gainDb),
   );
 }
 
