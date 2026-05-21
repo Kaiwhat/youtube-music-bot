@@ -49,7 +49,7 @@ jobs:
             --config=p/github-actions \
             --json \
             --output=semgrep-report.json \
-            . || true
+            .
 
       # Step 5：上傳 Semgrep 掃描結果
       # 之後可以在 GitHub Actions 的 Artifacts 下載 semgrep-report.json
